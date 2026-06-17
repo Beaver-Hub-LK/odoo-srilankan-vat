@@ -1,0 +1,7 @@
+# Runtime pip dependencies
+# Odoo itself is the platform — only add extra pip packages that modules depend on.
+#
+# Examples when the AI layer is active:
+#   langgraph
+#   celery[redis]
+#   redis

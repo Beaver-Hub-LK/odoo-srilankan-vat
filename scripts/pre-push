@@ -1,0 +1,46 @@
+#!/bin/bash
+# =============================================================================
+# BH Pre-Push Hook
+# Blocks pushes whose DESTINATION is a protected branch (main, release),
+# regardless of which local branch or refspec is used.
+#
+# Git passes each ref being pushed as a line on stdin:
+#   <local-ref> <local-sha> <remote-ref> <remote-sha>
+# We inspect <remote-ref> — the branch that will actually be updated on GitHub.
+# =============================================================================
+
+PROTECTED_BRANCHES=("main" "release" "19.0")
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # Strip "refs/heads/" prefix to get the bare branch name
+  remote_branch="${remote_ref#refs/heads/}"
+
+  for protected in "${PROTECTED_BRANCHES[@]}"; do
+    if [ "$remote_branch" = "$protected" ]; then
+      echo ""
+      echo "╔══════════════════════════════════════════════════════════════╗"
+      echo "║  ❌  PUSH BLOCKED — Protected Branch                        ║"
+      echo "╠══════════════════════════════════════════════════════════════╣"
+      echo "║                                                              ║"
+      printf "║  %-58s  ║\n" "You cannot push directly to: '$protected'"
+      echo "║                                                              ║"
+      echo "║  Allowed push targets:                                       ║"
+      echo "║    ✅  develop                                               ║"
+      echo "║    ✅  feature/<your-feature-name>                           ║"
+      echo "║    ✅  bugfix/<your-bugfix-name>                             ║"
+      echo "║    ✅  hotfix/<your-hotfix-name>                             ║"
+      echo "║                                                              ║"
+      echo "║  'main' and 'release' are managed by senior developers       ║"
+      echo "║  via Pull Requests only.                                     ║"
+      echo "║                                                              ║"
+      echo "╚══════════════════════════════════════════════════════════════╝"
+      echo ""
+      exit 1
+    fi
+  done
+done
+
+echo ""
+echo "✅ [pre-push] Destination check passed. Proceeding with push."
+echo ""
+exit 0

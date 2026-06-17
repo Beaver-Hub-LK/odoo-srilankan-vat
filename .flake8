@@ -1,0 +1,8 @@
+# flake8 has been replaced by ruff in this project.
+# See .ruff.toml for lint configuration.
+# This file is kept to prevent flake8 from reading pyproject.toml defaults
+# if it is accidentally installed.
+[flake8]
+max-line-length = 120
+extend-ignore = E203,W503
+exclude = .venv,.git,dist,build,*/migrations/*,odoo/

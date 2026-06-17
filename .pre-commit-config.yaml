@@ -1,0 +1,18 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+        exclude: ^odoo/
+      - id: ruff-format
+        exclude: ^odoo/
+
+  - repo: https://github.com/PyCQA/pylint
+    rev: v4.0.5
+    hooks:
+      - id: pylint
+        name: pylint (odoo)
+        args: ["--rcfile=.pylintrc"]
+        additional_dependencies: ["pylint-odoo==10.0.2"]
+        exclude: ^odoo/

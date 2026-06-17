@@ -1,0 +1,4 @@
+ruff
+pylint==4.0.5
+pylint-odoo==10.0.2
+pre-commit

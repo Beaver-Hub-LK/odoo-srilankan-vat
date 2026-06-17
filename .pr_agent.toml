@@ -1,0 +1,23 @@
+[config]
+response_language="English"
+
+[github_action]
+auto_review=true
+auto_describe=true
+auto_improve=true
+
+[pr_review]
+require_score_review=true
+num_code_suggestions=5
+final_update_message=true
+
+extra_instructions="""
+Review based on:
+- Odoo standards
+- proper inheritance
+- super() usage
+- ORM best practices
+- security
+- performance
+- clean python code
+"""
