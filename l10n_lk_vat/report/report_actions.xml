@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        A4 paper format with standard 10mm margins (no extra wkhtmltopdf spacing).
+        css_margins=False means margin values come from wkhtmltopdf, not CSS,
+        avoiding the double-margin issue from o_body_html padding.
+    -->
+    <record id="paperformat_lk_vat_invoice" model="report.paperformat">
+        <field name="name">Sri Lanka VAT Invoice (A4)</field>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">10</field>
+        <field name="margin_bottom">10</field>
+        <field name="margin_left">10</field>
+        <field name="margin_right">10</field>
+        <field name="dpi">96</field>
+        <field name="css_margins" eval="False"/>
+        <field name="disable_shrinking" eval="False"/>
+    </record>
+
+    <!--
+        Dedicated VAT invoice report action - used by the copy wizard.
+        Uses our custom paper format to avoid huge top/bottom margins.
+    -->
+    <record id="action_report_vat_invoice" model="ir.actions.report">
+        <field name="name">Tax Invoice (Sri Lanka)</field>
+        <field name="model">account.move</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">l10n_lk_vat.report_vat_invoice</field>
+        <field name="report_file">l10n_lk_vat.report_vat_invoice</field>
+        <field name="print_report_name">(object._get_report_base_filename())</field>
+        <field name="paperformat_id" ref="l10n_lk_vat.paperformat_lk_vat_invoice"/>
+        <field name="domain">[]</field>
+    </record>
+
+    <!--
+        Override the standard "Invoice PDF" action to route through our template
+        wrapper.  Only report_name and report_file are changed - paperformat_id
+        is deliberately NOT overridden here because this action is used globally
+        by all companies.  Overriding paperformat_id would force LK-specific
+        margins on non-LK companies.
+
+        LK companies print via action_report_vat_invoice (from action_print_pdf
+        and the copy wizard) which carries the correct paper format.
+    -->
+    <record id="account.account_invoices" model="ir.actions.report">
+        <field name="report_name">l10n_lk_vat.report_vat_invoice</field>
+        <field name="report_file">l10n_lk_vat.report_vat_invoice</field>
+    </record>
+</odoo>

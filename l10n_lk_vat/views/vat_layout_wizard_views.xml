@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ── VAT Layout Wizard form view ───────────────────────────────────── -->
+    <record id="view_l10n_lk_vat_layout_wizard_form" model="ir.ui.view">
+        <field name="name">l10n_lk.vat.layout.wizard.form</field>
+        <field name="model">l10n_lk.vat.layout.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Configure VAT Invoice Layout">
+                <field name="company_id" invisible="1"
+                       domain="[('id', 'in', allowed_company_ids)]"/>
+
+                <notebook>
+                    <!-- ── Tab 1: Layout ─────────────────────────────── -->
+                    <page string="Layout" name="layout">
+                        <group>
+                            <group string="Template">
+                                <field name="l10n_lk_vat_layout"
+                                       widget="radio"
+                                       string="VAT Invoice Layout"/>
+                            </group>
+                            <group string="Logo">
+                                <field name="l10n_lk_vat_show_logo" widget="boolean_toggle"/>
+                                <div class="text-muted" colspan="2">
+                                    The gazette format does not require a logo, but you may display
+                                    the company logo from the standard document layout settings.
+                                </div>
+                            </group>
+                            <group string="VAT">
+                                <field name="l10n_lk_vat_rate"/>
+                                <div class="text-muted" colspan="2">
+                                    Printed as "VAT Amount (Total Value of Supply @ X%)" per gazette
+                                    Annexure I. Update this when the gazette rate changes.
+                                </div>
+                            </group>
+                        </group>
+                    </page>
+
+                    <!-- ── Tab 2: Signature ──────────────────────────── -->
+                    <page string="Signature" name="signature">
+                        <group>
+                            <group string="Authorized Signatory">
+                                <field name="l10n_lk_vat_show_signature_box"
+                                       widget="boolean_toggle"
+                                       string="Print Blank Signature Box"/>
+                                <field name="l10n_lk_vat_signatory_name"
+                                       placeholder="e.g. Kamal Perera"
+                                       invisible="not l10n_lk_vat_show_signature_box"/>
+                                <field name="l10n_lk_vat_signatory_designation"
+                                       placeholder="e.g. Finance Manager"
+                                       invisible="not l10n_lk_vat_show_signature_box"/>
+                            </group>
+                            <group string="Preview">
+                                <div class="text-muted" colspan="2">
+                                    When "Print Blank Signature Box" is enabled, a blank line
+                                    with the signatory name and designation will appear at the
+                                    bottom-right of every printed VAT invoice for a wet signature.
+                                </div>
+                            </group>
+                        </group>
+                    </page>
+
+                    <!-- ── Tab 3: Footer ─────────────────────────────── -->
+                    <page string="Footer" name="footer">
+                        <group>
+                            <field name="l10n_lk_vat_footer_text"
+                                   nolabel="1"
+                                   colspan="2"
+                                   placeholder="e.g. Bank: Commercial Bank of Ceylon | Account No: 1234567890 | Branch: Colombo&#10;Terms: Payment due within 30 days of invoice date."
+                                   style="height: 80px;"/>
+                            <div class="text-muted" colspan="2">
+                                This text appears at the bottom-left of every VAT invoice.
+                                You can include bank details, payment terms, or other relevant information.
+                            </div>
+                        </group>
+                    </page>
+                </notebook>
+
+                <footer>
+                    <button name="action_save"
+                            string="Save"
+                            type="object"
+                            class="btn-primary"
+                            data-hotkey="q"/>
+                    <button string="Discard" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Action to open the wizard ──────────────────────────────────────── -->
+    <record id="action_l10n_lk_vat_layout_wizard" model="ir.actions.act_window">
+        <field name="name">Configure VAT Invoice Layout</field>
+        <field name="res_model">l10n_lk.vat.layout.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{"dialog_size": "large"}</field>
+    </record>
+
+    <!-- ── Security: access rule for the wizard ───────────────────────────── -->
+    <!-- Access is added via ir.model.access.csv -->
+</odoo>
