@@ -1,0 +1,478 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         Routing wrapper - routes to gazette layout for LK VAT companies,
+         falls back to standard Odoo invoice for all others.
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <template id="report_vat_invoice">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-set="lang" t-value="o.partner_id.lang"/>
+                <t t-set="o" t-value="o.with_context(lang=lang)"/>
+                <t t-if="o.company_id.l10n_lk_vat_enabled
+                          and o.move_type in ('out_invoice', 'out_refund')">
+                    <t t-call="l10n_lk_vat.report_vat_invoice_document"/>
+                </t>
+                <t t-else="">
+                    <t t-call="account.report_invoice_with_payments"/>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         Sri Lanka Gazette-compliant Tax Invoice - redesigned for clarity
+         Design rules:
+           - Every info field is an independent bordered box with 6 px gap
+           - Title is large, prominent, with generous whitespace above/below
+           - Labels are muted (9 pt, #5a5a5a); values are bold (10 pt, #1a1a1a)
+           - No &#160; / &#82xx; entities - wkhtmltopdf encoding corruption
+           - No monetary t-field widget - adds U+00A0 before currency symbol
+           - Amounts: '{:,.2f}'.format() - pure ASCII
+    ═══════════════════════════════════════════════════════════════════════ -->
+    <template id="report_vat_invoice_document">
+
+        <t t-set="is_copy"        t-value="context.get('l10n_lk_vat_copy_mode', False)"/>
+        <t t-set="is_credit_note" t-value="o.move_type == 'out_refund'"/>
+        <t t-set="is_debit_note"  t-value="o.move_type == 'out_invoice' and bool(o.debit_origin_id)"/>
+        <t t-if="is_credit_note">
+            <t t-set="doc_title" t-value="'TAX CREDIT NOTE'"/>
+        </t>
+        <t t-elif="is_debit_note">
+            <t t-set="doc_title" t-value="'TAX DEBIT NOTE'"/>
+        </t>
+        <t t-else="">
+            <t t-set="doc_title" t-value="'TAX INVOICE'"/>
+        </t>
+        <t t-set="original_move"   t-value="o.reversed_entry_id if is_credit_note else o.debit_origin_id"/>
+        <t t-set="purchaser_phone" t-value="o.partner_id.phone or o.partner_id.mobile or ''"/>
+
+        <div style="font-family: Arial, Helvetica, sans-serif; font-size: 10pt;
+                    color: #1a1a1a; margin: 0; padding: 0; line-height: 1.55;
+                    position: relative;">
+
+            <!-- ════════════════════════════════════════════════════════════
+                 COPY ONLY stamp - circular rubber-stamp badge in the
+                 top-right corner, double border + slight rotation for a
+                 classic ink-stamp look.
+            ════════════════════════════════════════════════════════════ -->
+            <t t-if="is_copy">
+                <div style="position: absolute; top: 18px; right: 18px;
+                            width: 118px; height: 118px; display: table;
+                            border-radius: 50%; border: 3px double #c62828;
+                            transform: rotate(-12deg); z-index: 10;">
+                    <div style="display: table-cell; vertical-align: middle;
+                                text-align: center; color: #c62828;
+                                font-size: 12pt; font-weight: bold;
+                                letter-spacing: 1px; line-height: 1.3;">
+                        COPY<br/>ONLY
+                    </div>
+                </div>
+            </t>
+
+            <!-- ════════════════════════════════════════════════════════════
+                 Logo (top-left) + Document title (centered) - same row
+            ════════════════════════════════════════════════════════════ -->
+            <div style="display: table; width: 100%; margin-bottom: 22px;">
+                <t t-if="o.company_id.l10n_lk_vat_show_logo and o.company_id.logo">
+                    <div style="display: table-cell; width: 200px; vertical-align: middle;
+                                text-align: left;">
+                        <img t-att-src="image_data_uri(o.company_id.logo)"
+                             style="max-height: 92px; max-width: 200px;"/>
+                    </div>
+                </t>
+                <div style="display: table-cell; vertical-align: middle; text-align: center;">
+                    <span style="display: inline-block;
+                                 border: 2px solid #1a1a1a;
+                                 padding: 10px 52px;
+                                 font-size: 15pt;
+                                 font-weight: bold;
+                                 letter-spacing: 2px;
+                                 line-height: 1.25;
+                                 white-space: nowrap;">
+                        <t t-esc="doc_title"/>
+                    </span>
+                </div>
+                <t t-if="o.company_id.l10n_lk_vat_show_logo and o.company_id.logo">
+                    <div style="display: table-cell; width: 200px;"/>
+                </t>
+            </div>
+
+            <!-- ════════════════════════════════════════════════════════════
+                 INFO SECTION - each box is independent (separate borders + gap)
+                 Gap between side-by-side boxes: 6 px (3 px padding each side)
+                 Gap between rows: 6 px margin-bottom
+            ════════════════════════════════════════════════════════════ -->
+
+            <!-- Row 1: Date of Invoice  |  Invoice No
+                 Date format: MM/DD/YYYY as required by the IRD gazette.
+                 This is counter-intuitive for Sri Lanka (DD/MM/YYYY is conventional)
+                 but the gazette text is unambiguous.
+            -->
+            <div style="display: table; width: 100%; margin-bottom: 6px;">
+                <div style="display: table-cell; width: 50%; padding-right: 3px; vertical-align: top;">
+                    <div style="border: 1px solid #2a2a2a; padding: 9px 16px;">
+                        <span style="color: #5a5a5a; font-size: 9pt;">
+                            <t t-if="is_credit_note">Date of Credit Note:</t>
+                            <t t-elif="is_debit_note">Date of Debit Note:</t>
+                            <t t-else="">Date of Invoice:</t>
+                        </span>
+                        <t t-if="o.invoice_date">
+                            <span style="font-weight: 600; font-size: 10pt;">
+                                <t t-esc="' ' + o.invoice_date.strftime('%m/%d/%Y')"/>
+                            </span>
+                        </t>
+                    </div>
+                </div>
+                <div style="display: table-cell; width: 50%; padding-left: 3px; vertical-align: top;">
+                    <div style="border: 1px solid #2a2a2a; padding: 9px 16px;">
+                        <span style="color: #5a5a5a; font-size: 9pt;">
+                            <t t-if="is_credit_note">Tax Credit Note No.:</t>
+                            <t t-elif="is_debit_note">Tax Debit Note No.:</t>
+                            <t t-else="">Tax Invoice No.:</t>
+                        </span>
+                        <span style="font-weight: 600; font-size: 10pt;">
+                            <t t-esc="' ' + (o.name or '')"/>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Supplier details  |  Purchaser details -->
+            <div style="display: table; width: 100%; margin-bottom: 6px;">
+                <div style="display: table-cell; width: 50%; padding-right: 3px; vertical-align: top;">
+                    <div style="border: 1px solid #2a2a2a; padding: 14px 16px; min-height: 132px;">
+                        <div style="margin-bottom: 6px;">
+                            <span style="color: #5a5a5a; font-size: 9pt;">Supplier's TIN:</span>
+                            <t t-esc="' ' + (o.company_id.vat or '')"/>
+                        </div>
+                        <div style="margin-bottom: 6px;">
+                            <span style="color: #5a5a5a; font-size: 9pt;">Supplier's Name:</span>
+                            <span style="font-weight: 600;">
+                                <t t-esc="' ' + o.company_id.name"/>
+                            </span>
+                        </div>
+                        <div style="margin-bottom: 6px;">
+                            <span style="color: #5a5a5a; font-size: 9pt;">Address:</span>
+                            <t t-esc="' ' + ', '.join(filter(None, [
+                                o.company_id.street,
+                                o.company_id.street2,
+                                o.company_id.city,
+                                o.company_id.state_id.name,
+                                o.company_id.zip,
+                            ]))"/>
+                        </div>
+                        <div style="margin-top: 5px;">
+                            <span style="color: #5a5a5a; font-size: 9pt;">Telephone No:</span>
+                            <t t-esc="' ' + (o.company_id.phone or '')"/>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: table-cell; width: 50%; padding-left: 3px; vertical-align: top;">
+                    <div style="border: 1px solid #2a2a2a; padding: 14px 16px; min-height: 132px;">
+                        <div style="margin-bottom: 6px;">
+                            <span style="color: #5a5a5a; font-size: 9pt;">Purchaser's TIN:</span>
+                            <t t-esc="' ' + (o.partner_id.vat or 'N/A')"/>
+                        </div>
+                        <div style="margin-bottom: 6px;">
+                            <span style="color: #5a5a5a; font-size: 9pt;">Purchaser's Name:</span>
+                            <span style="font-weight: 600;">
+                                <t t-esc="' ' + o.partner_id.name"/>
+                            </span>
+                        </div>
+                        <div style="margin-bottom: 6px;">
+                            <span style="color: #5a5a5a; font-size: 9pt;">Address:</span>
+                            <t t-esc="' ' + ', '.join(filter(None, [
+                                o.partner_id.street,
+                                o.partner_id.street2,
+                                o.partner_id.city,
+                                o.partner_id.state_id.name,
+                                o.partner_id.zip,
+                            ]))"/>
+                        </div>
+                        <div style="margin-top: 5px;">
+                            <span style="color: #5a5a5a; font-size: 9pt;">Telephone No:</span>
+                            <t t-esc="' ' + purchaser_phone"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 3: Date of Delivery  |  Place of Supply -->
+            <div style="display: table; width: 100%; margin-bottom: 6px;">
+                <div style="display: table-cell; width: 50%; padding-right: 3px; vertical-align: top;">
+                    <div style="border: 1px solid #2a2a2a; padding: 9px 16px;">
+                        <span style="color: #5a5a5a; font-size: 9pt;">Date of Delivery:</span>
+                        <t t-if="o.taxable_supply_date">
+                            <span style="font-weight: 600;">
+                                <t t-esc="' ' + o.taxable_supply_date.strftime('%m/%d/%Y')"/>
+                            </span>
+                        </t>
+                        <t t-elif="o.invoice_date">
+                            <span style="font-weight: 600;">
+                                <t t-esc="' ' + o.invoice_date.strftime('%m/%d/%Y')"/>
+                            </span>
+                        </t>
+                    </div>
+                </div>
+                <div style="display: table-cell; width: 50%; padding-left: 3px; vertical-align: top;">
+                    <div style="border: 1px solid #2a2a2a; padding: 9px 16px;">
+                        <span style="color: #5a5a5a; font-size: 9pt;">Place of Supply:</span>
+                        <t t-esc="' ' + (o.l10n_lk_place_of_supply or '')"/>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 4 (Credit/Debit Note only): Original Invoice Reference -->
+            <t t-if="original_move">
+                <div style="display: table; width: 100%; margin-bottom: 6px;">
+                    <div style="display: table-cell; width: 50%; padding-right: 3px; vertical-align: top;">
+                        <div style="border: 1px solid #2a2a2a; padding: 9px 16px;">
+                            <span style="color: #5a5a5a; font-size: 9pt;">Original Invoice No.:</span>
+                            <span style="font-weight: 600;">
+                                <t t-esc="' ' + (original_move.name or '')"/>
+                            </span>
+                        </div>
+                    </div>
+                    <div style="display: table-cell; width: 50%; padding-left: 3px; vertical-align: top;">
+                        <div style="border: 1px solid #2a2a2a; padding: 9px 16px;">
+                            <span style="color: #5a5a5a; font-size: 9pt;">Original Invoice Date:</span>
+                            <t t-if="original_move.invoice_date">
+                                <span style="font-weight: 600;">
+                                    <t t-esc="' ' + original_move.invoice_date.strftime('%m/%d/%Y')"/>
+                                </span>
+                            </t>
+                        </div>
+                    </div>
+                </div>
+            </t>
+
+            <!-- Row 5: Additional Information (full-width, tall) -->
+            <div style="border: 1px solid #2a2a2a; padding: 11px 16px; min-height: 72px;">
+                <span style="color: #5a5a5a; font-size: 9pt;">Additional Information if any:</span>
+                <t t-if="o.narration">
+                    <!-- t-out is correct for fields.Html (Odoo sanitizes on write).
+                         The wrapper limits layout disruption from any residual
+                         inline styles that pass the sanitizer. -->
+                    <div style="margin-top: 6px; overflow: hidden; position: relative;">
+                        <t t-out="o.narration"/>
+                    </div>
+                </t>
+            </div>
+
+            <!-- Gazette clause 4.1.g: Value of Supply stated in LKR without cents.
+                 HALF_UP rounding - int(x + 0.5) for positive amounts. -->
+            <t t-set="r_net"   t-value="int(o.amount_untaxed + 0.5)"/>
+            <t t-set="r_vat"   t-value="int(o.amount_tax     + 0.5)"/>
+            <t t-set="r_total" t-value="int(o.amount_total   + 0.5)"/>
+
+            <!-- ════════════════════════════════════════════════════════════
+                 LINE ITEMS TABLE
+                 Header: subtle gray background + bold labels
+                 Body:   8 px cell padding, right-aligned amounts
+                 Foot:   three totals rows, last row bold
+            ════════════════════════════════════════════════════════════ -->
+            <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                <thead>
+                    <tr>
+                        <th style="border: 1px solid #2a2a2a; padding: 10px 8px;
+                                   text-align: center; width: 11%;
+                                   font-size: 9.5pt; font-weight: bold;
+                                   background: #f0f0f0;">
+                            Reference
+                        </th>
+                        <th style="border: 1px solid #2a2a2a; border-left: none;
+                                   padding: 10px 10px; text-align: center; width: 39%;
+                                   font-size: 9.5pt; font-weight: bold;
+                                   background: #f0f0f0;">
+                            Description of Goods or Services
+                        </th>
+                        <th style="border: 1px solid #2a2a2a; border-left: none;
+                                   padding: 10px 8px; text-align: center; width: 10%;
+                                   font-size: 9.5pt; font-weight: bold;
+                                   background: #f0f0f0;">
+                            Quantity
+                        </th>
+                        <th style="border: 1px solid #2a2a2a; border-left: none;
+                                   padding: 10px 8px; text-align: center; width: 16%;
+                                   font-size: 9.5pt; font-weight: bold;
+                                   background: #f0f0f0;">
+                            Unit Price
+                        </th>
+                        <th style="border: 1px solid #2a2a2a; border-left: none;
+                                   padding: 10px 8px; text-align: center; width: 24%;
+                                   font-size: 9.5pt; font-weight: bold;
+                                   background: #f0f0f0;">
+                            Amount Excluding VAT (Rs.)
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <t t-foreach="o.invoice_line_ids.filtered(
+                            lambda l: l.display_type in ('product','line_section','line_note')
+                        )" t-as="line">
+
+                        <t t-if="line.display_type == 'product'">
+                            <tr>
+                                <td style="border: 1px solid #2a2a2a; padding: 9px 8px;
+                                           text-align: center; vertical-align: top;">
+                                    <t t-esc="line.product_id.default_code or ''"/>
+                                </td>
+                                <td style="border: 1px solid #2a2a2a; border-left: none;
+                                           padding: 9px 10px; vertical-align: top;">
+                                    <span t-field="line.name"/>
+                                </td>
+                                <td style="border: 1px solid #2a2a2a; border-left: none;
+                                           padding: 9px 8px; text-align: center; vertical-align: top;">
+                                    <t t-esc="'{:,.2f}'.format(line.quantity)"/>
+                                    <t t-if="line.product_uom_id">
+                                        <t t-esc="' ' + line.product_uom_id.name"/>
+                                    </t>
+                                </td>
+                                <td style="border: 1px solid #2a2a2a; border-left: none;
+                                           padding: 9px 10px; text-align: right; vertical-align: top;">
+                                    <t t-esc="'{:,.2f}'.format(line.price_unit)"/>
+                                </td>
+                                <td style="border: 1px solid #2a2a2a; border-left: none;
+                                           padding: 9px 10px; text-align: right; vertical-align: top;">
+                                    <t t-esc="'{:,.2f}'.format(line.price_subtotal)"/>
+                                </td>
+                            </tr>
+                        </t>
+
+                        <t t-elif="line.display_type == 'line_section'">
+                            <tr>
+                                <td colspan="5"
+                                    style="border: 1px solid #2a2a2a; padding: 9px 10px;
+                                           font-weight: bold; background: #fafafa;">
+                                    <span t-field="line.name"/>
+                                </td>
+                            </tr>
+                        </t>
+
+                        <t t-elif="line.display_type == 'line_note'">
+                            <tr>
+                                <td colspan="5"
+                                    style="border: 1px solid #2a2a2a; padding: 9px 10px;
+                                           font-style: italic; color: #555;">
+                                    <span t-field="line.name"/>
+                                </td>
+                            </tr>
+                        </t>
+
+                    </t>
+                </tbody>
+
+                <tbody>
+                    <!-- Total Value of Supply -->
+                    <tr>
+                        <td colspan="4"
+                            style="border: 1px solid #2a2a2a; padding: 9px 16px;
+                                   font-size: 9.5pt;">
+                            Total Value of Supply:
+                        </td>
+                        <td style="border: 1px solid #2a2a2a; border-left: none;
+                                   padding: 9px 10px; text-align: right; font-weight: 600;">
+                            <t t-esc="'{:,.2f}'.format(r_net)"/>
+                        </td>
+                    </tr>
+                    <!-- VAT Amount -->
+                    <tr>
+                        <td colspan="4"
+                            style="border: 1px solid #2a2a2a; border-top: none;
+                                   padding: 9px 16px; font-size: 9.5pt;">
+                            <t t-esc="'VAT Amount (Total Value of Supply @ {:g}%)'.format(o.company_id.l10n_lk_vat_rate)"/>
+                        </td>
+                        <td style="border: 1px solid #2a2a2a; border-left: none; border-top: none;
+                                   padding: 9px 10px; text-align: right; font-weight: 600;">
+                            <t t-esc="'{:,.2f}'.format(r_vat)"/>
+                        </td>
+                    </tr>
+                    <!-- Total Amount including VAT (bold) -->
+                    <tr>
+                        <td colspan="4"
+                            style="border: 1px solid #2a2a2a; border-top: none;
+                                   padding: 9px 16px; font-size: 9.5pt; font-weight: bold;">
+                            Total Amount including VAT:
+                        </td>
+                        <td style="border: 1px solid #2a2a2a; border-left: none; border-top: none;
+                                   padding: 9px 10px; text-align: right; font-weight: bold;">
+                            <t t-esc="'{:,.2f}'.format(r_total)"/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- ════════════════════════════════════════════════════════════
+                 BOTTOM SECTION - Amount in words + Mode of Payment
+                 Same box style as info section, with 20 px gap above
+            ════════════════════════════════════════════════════════════ -->
+            <div style="margin-top: 20px;">
+                <div style="border: 1px solid #2a2a2a; padding: 9px 16px; margin-bottom: 6px;">
+                    <span style="color: #5a5a5a; font-size: 9pt;">Total Amount in words:</span>
+                    <t t-set="r_total_words" t-value="o.currency_id.amount_to_text(r_total)"/>
+                    <t t-if="r_total_words">
+                        <span style="font-weight: 600;">
+                            <t t-esc="' ' + r_total_words"/>
+                        </span>
+                    </t>
+                </div>
+                <div style="border: 1px solid #2a2a2a; padding: 9px 16px;">
+                    <span style="color: #5a5a5a; font-size: 9pt;">Mode of Payment:</span>
+                    <t t-if="o.l10n_lk_mode_of_payment">
+                        <span style="font-weight: 600;">
+                            <t t-esc="' ' + dict(o._fields['l10n_lk_mode_of_payment'].selection).get(
+                                o.l10n_lk_mode_of_payment, '')"/>
+                        </span>
+                    </t>
+                </div>
+            </div>
+
+            <!-- ════════════════════════════════════════════════════════════
+                 SIGNATURE BOX - appears once at the end of the document
+            ════════════════════════════════════════════════════════════ -->
+            <t t-if="o.company_id.l10n_lk_vat_show_signature_box">
+                <div style="text-align: right; margin-top: 28px;">
+                    <div style="display: inline-block; border-top: 1px solid #1a1a1a;
+                                padding-top: 7px; margin-top: 52px; text-align: center;
+                                min-width: 220px;">
+                        <t t-if="o.company_id.l10n_lk_vat_signatory_name">
+                            <div style="font-weight: bold; font-size: 9.5pt;">
+                                <t t-esc="o.company_id.l10n_lk_vat_signatory_name"/>
+                            </div>
+                        </t>
+                        <t t-if="o.company_id.l10n_lk_vat_signatory_designation">
+                            <div style="font-size: 8.5pt; color: #555; margin-top: 2px;">
+                                <t t-esc="o.company_id.l10n_lk_vat_signatory_designation"/>
+                            </div>
+                        </t>
+                        <div style="font-size: 8pt; color: #888; margin-top: 3px;">
+                            Authorized Signatory
+                        </div>
+                    </div>
+                </div>
+            </t>
+
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════════
+             PAGE FOOTER - repeats on every page via wkhtmltopdf footer html.
+             Odoo's ir_actions_report._prepare_html() auto-extracts any
+             "footer" class div in the body and renders it standalone;
+             page/topage spans are substituted by wkhtmltopdf's JS at render time.
+        ════════════════════════════════════════════════════════════ -->
+        <div class="footer" style="font-family: Arial, Helvetica, sans-serif;
+                                    font-size: 8pt; color: #555;">
+            <div style="border-top: 1px solid #1a1a1a; padding-top: 4px;">
+                <span style="float: left;">
+                    Page <span class="page"/> of <span class="topage"/>
+                    <t t-if="o.company_id.l10n_lk_vat_footer_text">
+                        <t t-esc="' - ' + o.company_id.l10n_lk_vat_footer_text"/>
+                    </t>
+                </span>
+            </div>
+        </div>
+    </template>
+
+</odoo>

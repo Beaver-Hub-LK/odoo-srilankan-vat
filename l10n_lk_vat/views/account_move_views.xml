@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_move_form_lk_vat" model="ir.ui.view">
+        <field name="name">account.move.form.lk.vat</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+
+            <!-- ── 1. Print Copy button in header ─────────────────────────── -->
+            <!-- Target the *highlighted* Print button (shown before PDF is stored).
+                 Odoo 19 has two action_print_pdf buttons; the plain name= selector
+                 is ambiguous - the xpath uniquely matches the oe_highlight one. -->
+            <xpath expr="//button[@name='action_print_pdf' and @class='oe_highlight']" position="after">
+                <button name="%(l10n_lk_vat.action_l10n_lk_copy_invoice)d"
+                        string="Print Copy"
+                        type="action"
+                        class="btn-secondary"
+                        invisible="state != 'posted'
+                                   or move_type not in ('out_invoice', 'out_refund')
+                                   or not company_id.l10n_lk_vat_enabled"
+                        help="Issue a COPY ONLY reprint. Requires a reason and is permanently logged."
+                        groups="account.group_account_invoice"/>
+            </xpath>
+
+            <!-- ── 2. Place of Supply + Mode of Payment below taxable date ── -->
+            <field name="taxable_supply_date" position="after">
+                <field name="l10n_lk_place_of_supply"
+                       invisible="not company_id.l10n_lk_vat_enabled
+                                  or move_type not in ('out_invoice', 'out_refund')"
+                       readonly="state != 'draft'"/>
+            </field>
+
+            <!-- ── 3. Mode of Payment in Other Info → Invoice group ─────── -->
+            <field name="partner_bank_id" position="before">
+                <field name="l10n_lk_mode_of_payment"
+                       invisible="not company_id.l10n_lk_vat_enabled
+                                  or move_type not in ('out_invoice', 'out_refund')"
+                       readonly="state != 'draft'"/>
+            </field>
+
+            <!-- ── 4. Copy count in Other Info (read-only audit field) ───── -->
+            <field name="payment_reference" position="after">
+                <field name="l10n_lk_copy_count"
+                       invisible="not company_id.l10n_lk_vat_enabled
+                                  or move_type not in ('out_invoice', 'out_refund')
+                                  or l10n_lk_copy_count == 0"
+                       string="COPY ONLY Reprints"
+                       readonly="1"/>
+            </field>
+
+        </field>
+    </record>
+</odoo>

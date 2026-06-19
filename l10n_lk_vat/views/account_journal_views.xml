@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="account_journal_form_lk_vat" model="ir.ui.view">
+        <field name="name">account.journal.form.lk.vat</field>
+        <field name="model">account.journal</field>
+        <field name="inherit_id" ref="account.view_account_journal_form"/>
+        <field name="arch" type="xml">
+            <!-- Add VAT Unit Code below the refund/debit sequence fields in the journal form -->
+            <field name="refund_sequence" position="after">
+                <field name="l10n_lk_vat_unit_code"
+                       placeholder="e.g. HEAD, BR01, SALES"
+                       invisible="type != 'sale' or not company_id.l10n_lk_vat_enabled"/>
+            </field>
+        </field>
+    </record>
+</odoo>

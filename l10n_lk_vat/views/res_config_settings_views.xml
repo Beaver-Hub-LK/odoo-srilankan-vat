@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_lk_vat" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.lk.vat</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="account.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@id='invoicing_settings']" position="before">
+                <block title="Sri Lanka VAT Compliance" id="l10n_lk_vat_settings">
+                    <setting id="l10n_lk_vat_enabled"
+                             string="Enable Sri Lanka VAT Compliance"
+                             help="Activates gazette-compliant Tax Invoice numbering and report layout for Sri Lanka VAT (effective 2026-01-01).">
+                        <field name="l10n_lk_vat_enabled" />
+                        <div class="content-group mt-2" invisible="not l10n_lk_vat_enabled">
+                            <button type="action"
+                                    name="%(l10n_lk_vat.action_l10n_lk_vat_layout_wizard)d"
+                                    string="Configure VAT Invoice Layout"
+                                    class="btn btn-link ps-0">
+                                <i class="fa fa-arrow-right ms-1"/> Configure Layout
+                            </button>
+                        </div>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_l10n_lk_copy_invoice_form" model="ir.ui.view">
+        <field name="name">l10n_lk.copy.invoice.form</field>
+        <field name="model">l10n_lk.copy.invoice</field>
+        <field name="arch" type="xml">
+            <form string="Print Copy (COPY ONLY)">
+                <div class="alert alert-warning" role="alert">
+                    <strong>Gazette Compliance Notice:</strong>
+                    Issuing a COPY ONLY reprint is only permitted when the original has been
+                    lost and the recipient is a VAT-registered person.
+                    This action will be permanently logged on the invoice.
+                </div>
+                <group>
+                    <field name="move_id" invisible="1"/>
+                    <field name="reason"
+                           placeholder="e.g. Original invoice lost in transit. Customer VAT No: 123456789."
+                           nolabel="1"
+                           colspan="2"/>
+                </group>
+                <footer>
+                    <button name="action_generate_copy"
+                            string="Generate COPY ONLY"
+                            type="object"
+                            class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_l10n_lk_copy_invoice" model="ir.actions.act_window">
+        <field name="name">Print COPY ONLY</field>
+        <field name="res_model">l10n_lk.copy.invoice</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'default_move_id': active_id}</field>
+    </record>
+</odoo>
