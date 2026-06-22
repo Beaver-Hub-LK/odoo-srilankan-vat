@@ -7,9 +7,9 @@ def post_init_hook(env):
     every invoice that existed before this field was added would silently
     fall back to Odoo's default invoice template instead of the gazette
     Tax Invoice. Runs on fresh installs into a database that already has
-    invoices; see migrations/19.0.1.1.0/post-migrate.py for the upgrade path.
+    invoices. Databases upgrading an already-installed copy of this module
+    are not covered - backfill those manually if needed.
     """
     env.cr.execute(
-        "UPDATE account_move SET l10n_lk_print_as_tax_invoice = true "
-        "WHERE l10n_lk_print_as_tax_invoice = false"
+        "UPDATE account_move SET l10n_lk_print_as_tax_invoice = true " "WHERE l10n_lk_print_as_tax_invoice = false"
     )

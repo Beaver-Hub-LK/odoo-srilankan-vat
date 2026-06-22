@@ -59,12 +59,8 @@ class IrActionsReport(models.Model):
         """
         if self._is_default_invoice_report(report_ref) and res_ids:
             moves = self._l10n_lk_vat_resolve_moves(res_ids)
-            if moves and all(
-                move._is_l10n_lk_vat_sequence() and move.l10n_lk_print_as_tax_invoice for move in moves
-            ):
-                return super()._pre_render_qweb_pdf(
-                    "l10n_lk_vat.report_vat_invoice", res_ids=res_ids, data=data
-                )
+            if moves and all(move._is_l10n_lk_vat_sequence() and move.l10n_lk_print_as_tax_invoice for move in moves):
+                return super()._pre_render_qweb_pdf("l10n_lk_vat.report_vat_invoice", res_ids=res_ids, data=data)
         return super()._pre_render_qweb_pdf(report_ref, res_ids=res_ids, data=data)
 
     def _render_qweb_pdf(self, report_ref, res_ids=None, data=None):
@@ -167,9 +163,7 @@ class IrActionsReport(models.Model):
         """
         if docids and self._is_default_invoice_action():
             moves = self._l10n_lk_vat_resolve_moves(docids)
-            if moves and all(
-                move._is_l10n_lk_vat_sequence() and move.l10n_lk_print_as_tax_invoice for move in moves
-            ):
+            if moves and all(move._is_l10n_lk_vat_sequence() and move.l10n_lk_print_as_tax_invoice for move in moves):
                 return self.env.ref("l10n_lk_vat.action_report_vat_invoice").report_action(
                     docids, data=data, config=False
                 )
