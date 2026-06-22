@@ -41,6 +41,32 @@ class IrActionsReport(models.Model):
 
         return command_args
 
+    def _pre_render_qweb_pdf(self, report_ref, res_ids=None, data=None):
+        """Redirect Odoo's stock invoice report to the gazette Tax Invoice.
+
+        This is the lowest-level method common to every PDF entry point
+        except the dedicated in-form Print button (which calls
+        action_report_vat_invoice directly and never reaches this method
+        at all). The cog-wheel Print menu reaches here via the
+        /report/download controller -> _render_qweb_pdf -> here, using the
+        report_name STRING "account.report_invoice_with_payments" - it
+        never calls report_action() despite that name suggesting otherwise.
+        account.move.send._prepare_invoice_pdf_report (the Send & Print
+        wizard) calls this method directly with the same string. Both
+        bypassed our per-invoice "Print as Tax Invoice" toggle entirely
+        until this override - this is the single chokepoint that actually
+        catches them.
+        """
+        if self._is_default_invoice_report(report_ref) and res_ids:
+            moves = self._l10n_lk_vat_resolve_moves(res_ids)
+            if moves and all(
+                move._is_l10n_lk_vat_sequence() and move.l10n_lk_print_as_tax_invoice for move in moves
+            ):
+                return super()._pre_render_qweb_pdf(
+                    "l10n_lk_vat.report_vat_invoice", res_ids=res_ids, data=data
+                )
+        return super()._pre_render_qweb_pdf(report_ref, res_ids=res_ids, data=data)
+
     def _render_qweb_pdf(self, report_ref, res_ids=None, data=None):
         """Block fraudulent COPY ONLY stamps injected via the rendering context.
 
@@ -105,3 +131,56 @@ class IrActionsReport(models.Model):
         if report_ref and hasattr(report_ref, "report_name"):
             return report_ref.report_name == "l10n_lk_vat.report_vat_invoice"
         return False
+
+    def _is_default_invoice_report(self, report_ref):
+        """Return True when report_ref refers to Odoo's stock invoice report."""
+        if isinstance(report_ref, str):
+            return report_ref == "account.report_invoice_with_payments"
+        if isinstance(report_ref, int):
+            return False
+        if report_ref and hasattr(report_ref, "report_name"):
+            return report_ref.report_name == "account.report_invoice_with_payments"
+        return False
+
+    def _is_default_invoice_action(self):
+        """Return True when self is exactly the core "Invoice PDF" action."""
+        default_invoice_action = self.env.ref("account.account_invoices", raise_if_not_found=False)
+        return bool(default_invoice_action) and self.id == default_invoice_action.id
+
+    def report_action(self, docids, data=None, config=True):
+        """Redirect the stock "Invoice PDF" action to the gazette Tax Invoice
+        for any caller that explicitly invokes report_action() on it.
+
+        Note: neither the cog-wheel Print menu nor account.move.send reach
+        this method - they call _pre_render_qweb_pdf directly/indirectly
+        with a report_name string, never report_action(). See that
+        override above for the chokepoint that actually covers them. This
+        one is a defensive backstop for any other code (ours or a third
+        party module) that builds an action via report_action() the way
+        account.move.action_print_pdf's super() fallback does.
+
+        config is forced to False on the redirect target regardless of what
+        the caller passed in: our gazette template does not use
+        web.external_layout, so the "configure your document layout" wizard
+        Odoo offers admins when company.external_report_layout_id is unset
+        is irrelevant for it and would otherwise block printing.
+        """
+        if docids and self._is_default_invoice_action():
+            moves = self._l10n_lk_vat_resolve_moves(docids)
+            if moves and all(
+                move._is_l10n_lk_vat_sequence() and move.l10n_lk_print_as_tax_invoice for move in moves
+            ):
+                return self.env.ref("l10n_lk_vat.action_report_vat_invoice").report_action(
+                    docids, data=data, config=False
+                )
+        return super().report_action(docids, data=data, config=config)
+
+    def _l10n_lk_vat_resolve_moves(self, docids):
+        """Normalize docids (recordset/int/list) into an account.move recordset."""
+        if isinstance(docids, models.Model):
+            ids = docids.ids
+        elif isinstance(docids, int):
+            ids = [docids]
+        else:
+            ids = list(docids)
+        return self.env["account.move"].browse(ids).exists()

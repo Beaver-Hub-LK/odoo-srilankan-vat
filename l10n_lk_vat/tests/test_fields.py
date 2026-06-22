@@ -54,6 +54,17 @@ class TestL10nLkFields(L10nLkVatCommon):
         expected = {"cash", "bank_transfer", "cheque", "credit_card", "debit_card", "mobile_payment", "online_payment"}
         self.assertEqual(allowed, expected)
 
+    # ── l10n_lk_print_as_tax_invoice ──────────────────────────────────────────
+
+    def test_print_as_tax_invoice_defaults_to_true(self):
+        invoice = self._make_invoice("out_invoice")
+        self.assertTrue(invoice.l10n_lk_print_as_tax_invoice)
+
+    def test_print_as_tax_invoice_is_user_editable(self):
+        invoice = self._make_invoice("out_invoice")
+        invoice.l10n_lk_print_as_tax_invoice = False
+        self.assertFalse(invoice.l10n_lk_print_as_tax_invoice)
+
     # ── res.company fields ───────────────────────────────────────────────────
 
     def test_vat_rate_default_is_18(self):
@@ -63,6 +74,9 @@ class TestL10nLkFields(L10nLkVatCommon):
     def test_vat_rate_is_configurable(self):
         self.env.company.l10n_lk_vat_rate = 15.0
         self.assertEqual(self.env.company.l10n_lk_vat_rate, 15.0)
+
+    def test_show_amount_in_words_defaults_to_true(self):
+        self.assertTrue(self.env.company.l10n_lk_vat_show_amount_in_words)
 
     # ── Journal unit-code constraint ─────────────────────────────────────────
 
@@ -123,6 +137,15 @@ class TestL10nLkFields(L10nLkVatCommon):
         )
         self.assertEqual(self.env.company.l10n_lk_vat_signatory_name, "Kamal Perera")
         self.assertEqual(self.env.company.l10n_lk_vat_signatory_designation, "Finance Manager")
+
+    def test_layout_wizard_show_amount_in_words_writes_through_to_company(self):
+        self.env["l10n_lk.vat.layout.wizard"].create(
+            {
+                "company_id": self.env.company.id,
+                "l10n_lk_vat_show_amount_in_words": False,
+            }
+        )
+        self.assertFalse(self.env.company.l10n_lk_vat_show_amount_in_words)
 
     def test_layout_wizard_action_save_returns_close(self):
         wizard = self.env["l10n_lk.vat.layout.wizard"].create(

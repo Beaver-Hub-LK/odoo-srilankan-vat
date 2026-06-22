@@ -50,6 +50,11 @@ class L10nLkVatLayoutWizard(models.TransientModel):
         readonly=False,
         string="Show Blank Signature Box",
     )
+    l10n_lk_vat_show_amount_in_words = fields.Boolean(
+        related="company_id.l10n_lk_vat_show_amount_in_words",
+        readonly=False,
+        string="Show Total Amount in Words",
+    )
     l10n_lk_vat_rate = fields.Float(
         related="company_id.l10n_lk_vat_rate",
         readonly=False,

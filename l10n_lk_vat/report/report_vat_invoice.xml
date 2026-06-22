@@ -46,7 +46,9 @@
             <t t-set="doc_title" t-value="'TAX INVOICE'"/>
         </t>
         <t t-set="original_move"   t-value="o.reversed_entry_id if is_credit_note else o.debit_origin_id"/>
-        <t t-set="purchaser_phone" t-value="o.partner_id.phone or o.partner_id.mobile or ''"/>
+        <!-- res.partner has no separate "mobile" field in this Odoo version -
+             phone is the only contact number available. -->
+        <t t-set="purchaser_phone" t-value="o.partner_id.phone or ''"/>
 
         <div style="font-family: Arial, Helvetica, sans-serif; font-size: 10pt;
                     color: #1a1a1a; margin: 0; padding: 0; line-height: 1.55;
@@ -261,11 +263,10 @@
                 </t>
             </div>
 
-            <!-- Gazette clause 4.1.g: Value of Supply stated in LKR without cents.
-                 HALF_UP rounding - int(x + 0.5) for positive amounts. -->
-            <t t-set="r_net"   t-value="int(o.amount_untaxed + 0.5)"/>
-            <t t-set="r_vat"   t-value="int(o.amount_tax     + 0.5)"/>
-            <t t-set="r_total" t-value="int(o.amount_total   + 0.5)"/>
+            <!-- Gazette clause 4.1.g: Value of Supply stated in LKR with cents (2 decimal places). -->
+            <t t-set="r_net"   t-value="o.amount_untaxed"/>
+            <t t-set="r_vat"   t-value="o.amount_tax"/>
+            <t t-set="r_total" t-value="o.amount_total"/>
 
             <!-- ════════════════════════════════════════════════════════════
                  LINE ITEMS TABLE
@@ -409,15 +410,17 @@
                  Same box style as info section, with 20 px gap above
             ════════════════════════════════════════════════════════════ -->
             <div style="margin-top: 20px;">
-                <div style="border: 1px solid #2a2a2a; padding: 9px 16px; margin-bottom: 6px;">
-                    <span style="color: #5a5a5a; font-size: 9pt;">Total Amount in words:</span>
-                    <t t-set="r_total_words" t-value="o.currency_id.amount_to_text(r_total)"/>
-                    <t t-if="r_total_words">
-                        <span style="font-weight: 600;">
-                            <t t-esc="' ' + r_total_words"/>
-                        </span>
-                    </t>
-                </div>
+                <t t-if="o.company_id.l10n_lk_vat_show_amount_in_words">
+                    <div style="border: 1px solid #2a2a2a; padding: 9px 16px; margin-bottom: 6px;">
+                        <span style="color: #5a5a5a; font-size: 9pt;">Total Amount in words:</span>
+                        <t t-set="r_total_words" t-value="o.currency_id.amount_to_text(r_total)"/>
+                        <t t-if="r_total_words">
+                            <span style="font-weight: 600;">
+                                <t t-esc="' ' + r_total_words"/>
+                            </span>
+                        </t>
+                    </div>
+                </t>
                 <div style="border: 1px solid #2a2a2a; padding: 9px 16px;">
                     <span style="color: #5a5a5a; font-size: 9pt;">Mode of Payment:</span>
                     <t t-if="o.l10n_lk_mode_of_payment">

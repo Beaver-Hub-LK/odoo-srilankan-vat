@@ -1,6 +1,5 @@
 {
     "name": "Sri Lanka VAT Invoice Compliance",
-    "icon": "/account/static/description/l10n.png",
     "countries": ["lk"],  # for discoverability; auto_install is False
     "version": "19.0.1.0.0",
     "category": "Accounting/Localizations",
@@ -22,8 +21,13 @@
         "report/report_actions.xml",
         "report/report_vat_invoice.xml",
     ],
+    "images": [
+        "static/description/banner.png",
+        "static/description/icon.png",
+    ],
     "installable": True,
     "application": False,
     "auto_install": False,
+    "post_init_hook": "post_init_hook",
     "license": "LGPL-3",
 }

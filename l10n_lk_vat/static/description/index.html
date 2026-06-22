@@ -27,7 +27,7 @@
       <div style="display:flex;flex-wrap:wrap;gap:6px;">
         <span style="display:inline-block;background:#00478F;color:#fff;padding:3px 10px;border-radius:20px;font-size:0.74rem;font-weight:600;">LGPL-3 · Free</span>
         <span style="display:inline-block;background:#00478F;color:#fff;padding:3px 10px;border-radius:20px;font-size:0.74rem;font-weight:600;">Odoo 19</span>
-        <span style="display:inline-block;background:#FF5D00;color:#fff;padding:3px 10px;border-radius:20px;font-size:0.74rem;font-weight:600;">IRD Gazette - 13 Nov 2025</span>
+        <span style="display:inline-block;background:#FF5D00;color:#fff;padding:3px 10px;border-radius:20px;font-size:0.74rem;font-weight:600;">IRD Gazette No. 2481/22</span>
         <span style="display:inline-block;background:#059669;color:#fff;padding:3px 10px;border-radius:20px;font-size:0.74rem;font-weight:600;">Tax Invoice</span>
         <span style="display:inline-block;background:#6b7280;color:#fff;padding:3px 10px;border-radius:20px;font-size:0.74rem;font-weight:600;">Credit Note</span>
         <span style="display:inline-block;background:#6b7280;color:#fff;padding:3px 10px;border-radius:20px;font-size:0.74rem;font-weight:600;">Debit Note</span>
@@ -48,7 +48,7 @@
     <strong>l10n_lk_vat</strong> adds gazette-compliant invoicing to Odoo 19 for businesses registered
     under the Value Added Tax Act, No. 14 of 2002, Sri Lanka. It implements the complete
     <strong>"Tax Invoice Specification" (Annexure I)</strong> published in the Extraordinary Gazette
-    notification dated <strong>13 November 2025</strong> (effective 1 January 2026), covering all
+    notification <strong>No. 2481/22, Friday, March 27, 2026</strong> (effective 1 January 2026), covering all
     supplier obligations.
   </p>
   <p style="margin-bottom:10px;">
@@ -69,7 +69,7 @@
   </div>
   <div style="border-radius:8px;padding:12px 16px;margin-bottom:0;background:#eff6ff;border-left:3px solid #2563eb;display:flex;align-items:flex-start;gap:10px;font-size:0.88rem;">
     <span style="font-size:1rem;flex-shrink:0;margin-top:2px;color:#2563eb;">&#9432;</span>
-    <div><strong>Legal basis:</strong> Value Added Tax Act, No. 14 of 2002; Extraordinary Gazette notification dated 13 November 2025 (published 17 November 2025); Annexure I - "Tax Invoice Specification". Effective date: <strong>01 January 2026</strong>. &nbsp;<a href="https://www.ird.gov.lk/en/publications/sitepages/Gazette.aspx" style="color:#2563eb;font-weight:600;">&#8599; IRD Gazette Publications</a></div>
+    <div><strong>Legal basis:</strong> Value Added Tax Act, No. 14 of 2002; Extraordinary Gazette No. 2481/22, Friday, March 27, 2026; Annexure I - "Tax Invoice Specification". Effective date: <strong>01 January 2026</strong>. &nbsp;<a href="https://www.ird.gov.lk/en/publications/sitepages/Gazette.aspx" style="color:#2563eb;font-weight:600;">&#8599; IRD Gazette Publications</a></div>
   </div>
 
   <!-- Stats row -->
@@ -178,7 +178,7 @@
         </tr>
         <tr>
           <td style="padding:9px 14px;border-bottom:1px solid #eef2f8;vertical-align:top;">Purchaser TIN, name, address, telephone - top-right</td>
-          <td style="padding:9px 14px;border-bottom:1px solid #eef2f8;vertical-align:top;"><span style="color:#059669;font-weight:700;">&#10003;</span> Rendered from invoice's <code style="background:#eef2f8;color:#00478F;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:0.82em;">partner_id</code>: name, address, VAT, phone/mobile fallback</td>
+          <td style="padding:9px 14px;border-bottom:1px solid #eef2f8;vertical-align:top;"><span style="color:#059669;font-weight:700;">&#10003;</span> Rendered from invoice's <code style="background:#eef2f8;color:#00478F;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:0.82em;">partner_id</code>: name, address, VAT, phone</td>
         </tr>
         <tr style="background:#fafbff;">
           <td style="padding:9px 14px;border-bottom:1px solid #eef2f8;vertical-align:top;">Invoice serial number - <code style="background:#eef2f8;color:#00478F;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:0.82em;">YYMMM_QQQQ_XXXXX</code>, ≤40 chars, no spaces</td>
@@ -201,8 +201,8 @@
           <td style="padding:9px 14px;border-bottom:1px solid #eef2f8;vertical-align:top;"><span style="color:#059669;font-weight:700;">&#10003;</span> Standard Odoo invoice lines: <code style="background:#eef2f8;color:#00478F;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:0.82em;">name</code>, <code style="background:#eef2f8;color:#00478F;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:0.82em;">quantity</code>, <code style="background:#eef2f8;color:#00478F;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:0.82em;">product_uom_id</code></td>
         </tr>
         <tr>
-          <td style="padding:9px 14px;border-bottom:1px solid #eef2f8;vertical-align:top;">Value of Supply - net, VAT amount, total, total in words - <strong>stated in LKR without cents</strong></td>
-          <td style="padding:9px 14px;border-bottom:1px solid #eef2f8;vertical-align:top;"><span style="color:#059669;font-weight:700;">&#10003;</span> Total Value of Supply, "VAT Amount @ 18%", Total incl. VAT, amount in words - all HALF_UP rounded to the nearest rupee at print time; displayed as <code style="background:#eef2f8;color:#00478F;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:0.82em;">X,XXX.00</code></td>
+          <td style="padding:9px 14px;border-bottom:1px solid #eef2f8;vertical-align:top;">Value of Supply - net, VAT amount, total, total in words - <strong>stated in LKR with cents (2 decimal places)</strong>, per the gazette amendment</td>
+          <td style="padding:9px 14px;border-bottom:1px solid #eef2f8;vertical-align:top;"><span style="color:#059669;font-weight:700;">&#10003;</span> Total Value of Supply, "VAT Amount @ 18%", Total incl. VAT, amount in words (optional, on by default) - shown at full precision, matching the line items, no rounding applied</td>
         </tr>
         <tr style="background:#fafbff;">
           <td style="padding:9px 14px;border-bottom:1px solid #eef2f8;vertical-align:top;">Mode of Payment</td>
@@ -260,14 +260,14 @@
         </ul>
       </div>
       <div style="border:1px solid #a7f3d0;border-radius:10px;padding:16px 18px;background:#ecfdf5;margin-bottom:14px;">
-        <div style="font-size:0.9rem;font-weight:700;color:#059669;margin-bottom:8px;">&#128176; LKR Rounding - No Cents</div>
+        <div style="font-size:0.9rem;font-weight:700;color:#059669;margin-bottom:8px;">&#128424; Flexible Per-Invoice Print Format</div>
         <ul style="font-size:0.83rem;color:#444;padding-left:18px;margin:0;">
-          <li style="margin-bottom:4px;">All Value of Supply amounts (net, VAT, total) rounded to the nearest rupee at PDF print time</li>
-          <li style="margin-bottom:4px;">HALF_UP rounding - commercial standard, not Python banker's rounding</li>
-          <li style="margin-bottom:4px;">Displayed as <code style="background:#eef2f8;color:#00478F;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:0.82em;">X,XXX.00</code> - whole rupees with .00 suffix for clarity</li>
-          <li style="margin-bottom:4px;">Amount in words computed from the rounded total</li>
-          <li style="margin-bottom:4px;">PDF-display only - accounting entries retain full precision</li>
-          <li>Optional: pair with Odoo Cash Rounding to also round the posted journal entries</li>
+          <li style="margin-bottom:4px;">For purchasers who are <strong>not VAT-registered</strong>, a Tax Invoice is not the correct document - this toggle switches that specific invoice to Odoo's standard layout instead</li>
+          <li style="margin-bottom:4px;">Boolean toggle <code style="background:#eef2f8;color:#00478F;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:0.82em;">l10n_lk_print_as_tax_invoice</code> on every invoice, default On</li>
+          <li style="margin-bottom:4px;">Off falls back to Odoo's standard invoice layout for that document only</li>
+          <li style="margin-bottom:4px;">Single source of truth for the Print button, the cog-wheel Print menu, and the Send &amp; Print wizard</li>
+          <li style="margin-bottom:4px;">Never touches Odoo's global "Invoice PDF" action - other companies in the same database are unaffected</li>
+          <li>Does not affect the gazette serial number - numbering stays governed solely by the kill switch</li>
         </ul>
       </div>
     </div>
@@ -288,7 +288,7 @@
         <div style="font-size:0.9rem;font-weight:700;color:#00478F;margin-bottom:8px;">&#9998; VAT Layout Designer Wizard</div>
         <ul style="font-size:0.83rem;color:#444;padding-left:18px;margin:0;">
           <li style="margin-bottom:4px;">Accessed via Settings → Sri Lanka VAT Compliance → "Configure VAT Invoice Layout"</li>
-          <li style="margin-bottom:4px;"><strong>Layout tab:</strong> show/hide company logo (gazette format does not require it)</li>
+          <li style="margin-bottom:4px;"><strong>Layout tab:</strong> show/hide company logo (gazette format does not require it), VAT rate, show/hide total amount in words</li>
           <li style="margin-bottom:4px;"><strong>Signature tab:</strong> signatory name, designation, blank signature box toggle</li>
           <li style="margin-bottom:4px;"><strong>Footer tab:</strong> free text - bank details, payment terms, etc.</li>
           <li>All settings stored on <code style="background:#eef2f8;color:#00478F;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:0.82em;">res.company</code> - apply immediately to next print</li>
@@ -392,6 +392,20 @@
     </div>
   </div>
 
+  <!-- Special note: kill switch is per-company -->
+  <div style="border-radius:8px;padding:14px 16px;margin-bottom:20px;background:#eff6ff;border-left:4px solid #2563eb;display:flex;align-items:flex-start;gap:10px;font-size:0.88rem;">
+    <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px;color:#2563eb;">&#128204;</span>
+    <div>
+      <strong style="display:block;margin-bottom:4px;color:#1e40af;">Note: this is a per-company switch, not a database-wide setting</strong>
+      <span style="color:#444;">
+        Running multiple companies in one Odoo database? Each company has its <strong>own</strong> "Enable Sri Lanka VAT Compliance" toggle.
+        Switch to a company in the top-right company selector before repeating Step 1 for it - only companies you explicitly enable will print the
+        gazette Tax Invoice format and use <code style="background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:0.82em;">YYMMM_QQQQ_XXXXX</code> numbering.
+        Every other company keeps printing Odoo's standard invoice, completely unaffected.
+      </span>
+    </div>
+  </div>
+
   <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border:1px solid #e5e9f2;border-radius:10px;margin-bottom:10px;background:#fafbff;">
     <div style="width:32px;height:32px;border-radius:50%;background:#00478F;color:#fff;font-weight:700;font-size:0.88rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
     <div>
@@ -408,31 +422,13 @@
     </div>
   </div>
 
-  <!-- Cash Rounding note -->
-  <div style="border-radius:8px;padding:14px 16px;margin-bottom:20px;background:#eff6ff;border-left:3px solid #2563eb;font-size:0.88rem;">
-    <strong style="display:block;margin-bottom:6px;color:#1e40af;">&#9432; Optional - Odoo Cash Rounding (round the accounting entries, not just the PDF)</strong>
-    <p style="margin:0 0 8px;color:#444;">
-      The PDF already rounds all Value of Supply amounts to the nearest rupee at print time (gazette clause). If you also want the <strong>posted journal entries</strong> to reflect rounded LKR amounts, configure Odoo's built-in Cash Rounding:
-    </p>
-    <ol style="margin:0 0 8px;padding-left:20px;color:#444;">
-      <li style="margin-bottom:4px;">Go to <strong>Accounting &rarr; Configuration &rarr; Settings</strong> and enable <em>Cash Rounding</em>.</li>
-      <li style="margin-bottom:4px;">Go to <strong>Accounting &rarr; Configuration &rarr; Cash Roundings</strong> and click <strong>Create</strong>.</li>
-      <li style="margin-bottom:4px;">Set <em>Rounding Precision</em> to <code style="background:#eef2f8;color:#00478F;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:0.82em;">1.00</code> (nearest rupee), <em>Rounding Method</em> to <strong>HALF UP</strong>, and choose a <em>Rounding Strategy</em>:</li>
-    </ol>
-    <ul style="margin:0 0 8px;padding-left:20px;color:#444;">
-      <li style="margin-bottom:4px;"><strong>Add a rounding line</strong> - inserts a dedicated rounding line on the invoice; you must specify an account to record the difference.</li>
-      <li><strong>Modify tax amount</strong> - absorbs the rounding difference into the tax section; no extra invoice line needed.</li>
-    </ul>
-    <p style="margin:0;color:#555;font-size:0.84rem;">Select the Cash Rounding on each invoice under <em>Other Info</em>. This is fully optional - the PDF rounds independently regardless of this setting.</p>
-  </div>
-
   <h5 style="font-size:0.92rem;font-weight:700;color:#001535;margin:0 0 12px;">&#9658; Per-Invoice Fields</h5>
 
   <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border:1px solid #e5e9f2;border-radius:10px;margin-bottom:20px;background:#fafbff;">
     <div style="width:32px;height:32px;border-radius:50%;background:#00478F;color:#fff;font-weight:700;font-size:0.88rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">4</div>
     <div>
       <strong style="font-size:0.9rem;color:#001535;display:block;margin-bottom:4px;">On each draft customer invoice: Place of Supply &amp; Mode of Payment</strong>
-      <p style="font-size:0.83rem;color:#666;margin:0;"><strong>Place of Supply:</strong> defaults to company city; edit if the delivery origin differs. <strong>Mode of Payment:</strong> select from Cash, Bank Transfer, Cheque, Credit Card, Debit Card, Mobile Payment, or Online Payment. Both are locked once the invoice is confirmed.</p>
+      <p style="font-size:0.83rem;color:#666;margin:0;"><strong>Place of Supply:</strong> defaults to company city; edit if the delivery origin differs. <strong>Mode of Payment:</strong> select from Cash, Bank Transfer, Cheque, Credit Card, Debit Card, Mobile Payment, or Online Payment. Both are locked once the invoice is confirmed. <strong>Print as Tax Invoice:</strong> on by default - turn off when the purchaser is not VAT-registered and a Tax Invoice is not the correct document, to print Odoo's standard layout instead. Editable at any time.</p>
     </div>
   </div>
 
@@ -573,16 +569,18 @@
       <ul style="margin:0;padding-left:18px;font-size:0.84rem;color:#333;line-height:1.7;">
         <li>Gazette <code style="background:#eef2f8;color:#00478F;padding:1px 4px;border-radius:3px;font-family:monospace;font-size:0.82em;">YYMMM_QQQQ_XXXXX</code> serial number - auto-assigned on post, monthly reset, scoped per journal unit code</li>
         <li>Full A4 QWeb PDF report - Tax Invoice, Tax Credit Note, Tax Debit Note with all IRD-required fields</li>
-        <li>LKR totals rounded to nearest rupee (HALF_UP), displayed as <code style="background:#eef2f8;color:#00478F;padding:1px 4px;border-radius:3px;font-family:monospace;font-size:0.82em;">X,XXX.00</code> (Clause 4.1.g)</li>
+        <li>LKR totals shown with cents (2 decimal places), per the amended Clause 4.1.g</li>
+        <li>Total amount in words - optional, toggleable per company (on by default)</li>
         <li>Repeating page footer with page numbers on every printed page</li>
         <li>Red <strong>COPY ONLY</strong> circular stamp on reprints (Clause 6.2)</li>
         <li>Original invoice reference block on Credit Notes and Debit Notes</li>
       </ul>
       <!-- col 2 -->
       <ul style="margin:0;padding-left:18px;font-size:0.84rem;color:#333;line-height:1.7;">
-        <li>Three-tab VAT Layout Designer wizard - logo, VAT rate, signatory, footer text</li>
+        <li>Three-tab VAT Layout Designer wizard - logo, VAT rate, signatory, footer text, total-in-words visibility</li>
         <li>Place of Supply field - defaults to company city, editable per invoice (Clause 4.1.c)</li>
         <li>Mode of Payment - seven gazette-specified options (Clause 4.1.h)</li>
+        <li>Per-invoice <strong>Print as Tax Invoice</strong> toggle - one source of truth for the Print button, Print menu, and Send &amp; Print wizard</li>
         <li>COPY ONLY reprint audit trail - requires reason, logs to chatter, increments copy counter</li>
         <li>Per-company kill switch - safe in multi-company databases</li>
         <li>Global UTF-8 fix for wkhtmltopdf; 56 automated tests</li>
@@ -692,7 +690,7 @@
 <!-- ═══════════════ FOOTER ═══════════════ -->
 <div style="text-align:center;padding:20px 0;font-size:0.8rem;color:#999;border-top:1px solid #e5e9f2;margin-top:8px;">
   <p style="margin-bottom:4px;"><strong>BeaverHub (Pvt) Ltd</strong> - Sri Lanka &nbsp;|&nbsp; <a href="https://beaver-hub.com" style="color:#00478F;">beaver-hub.com</a></p>
-  <p style="margin:0;font-size:0.76rem;">&copy; 2026 BeaverHub (Pvt) Ltd &nbsp;&middot;&nbsp; Released under <strong>LGPL-3</strong> &nbsp;&middot;&nbsp; Module version 19.0.1.0.0 &nbsp;&middot;&nbsp; Odoo 19.0 &nbsp;&middot;&nbsp; Legal basis: IRD Gazette Extraordinary No. - 13 November 2025, effective 01 January 2026</p>
+  <p style="margin:0;font-size:0.76rem;">&copy; 2026 BeaverHub (Pvt) Ltd &nbsp;&middot;&nbsp; Released under <strong>LGPL-3</strong> &nbsp;&middot;&nbsp; Module version 19.0.1.0.0 &nbsp;&middot;&nbsp; Odoo 19.0 &nbsp;&middot;&nbsp; Legal basis: IRD Gazette Extraordinary No. 2481/22, Friday, March 27, 2026, effective 01 January 2026</p>
 </div>
 
 </div><!-- /max-width wrapper -->

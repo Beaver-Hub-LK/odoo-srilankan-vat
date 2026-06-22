@@ -32,6 +32,14 @@ class AccountMove(models.Model):
         copy=False,
         help="Number of COPY ONLY reprints issued for this invoice.",
     )
+    l10n_lk_print_as_tax_invoice = fields.Boolean(
+        string="Print as Tax Invoice",
+        default=True,
+        help="When enabled, the Print button renders the gazette-format Tax Invoice. "
+        "When disabled, it falls back to Odoo's default invoice layout instead. "
+        "Does not affect the invoice's serial number, which is always governed by "
+        "the VAT Compliance kill switch, regardless of this setting.",
+    )
 
     # ── Sequence helpers ─────────────────────────────────────────────────────
 
@@ -176,6 +184,12 @@ class AccountMove(models.Model):
     def action_print_pdf(self):
         """Use the dedicated VAT report action for gazette-format invoices.
 
+        Gated on both ``_is_l10n_lk_vat_sequence()`` (company/journal eligible
+        for gazette numbering) AND ``l10n_lk_print_as_tax_invoice`` (the
+        per-invoice toggle, default True). The toggle only ever picks a print
+        template - it never affects the invoice's serial number, which stays
+        governed solely by ``_is_l10n_lk_vat_sequence()``.
+
         Two reasons to bypass super() for LK VAT invoices:
 
         1. Paper format: ``action_report_vat_invoice`` carries the LK-specific A4
@@ -194,7 +208,7 @@ class AccountMove(models.Model):
             self.env.ref('l10n_lk_vat.action_report_vat_invoice').report_action(self)
         """
         self.ensure_one()
-        if self._is_l10n_lk_vat_sequence():
+        if self._is_l10n_lk_vat_sequence() and self.l10n_lk_print_as_tax_invoice:
             return self.env.ref("l10n_lk_vat.action_report_vat_invoice").report_action(
                 self,
                 config=False,
