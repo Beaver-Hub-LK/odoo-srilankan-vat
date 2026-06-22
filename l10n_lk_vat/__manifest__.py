@@ -5,7 +5,7 @@
     "category": "Accounting/Localizations",
     "summary": "Gazette-compliant Tax Invoice, Credit Note & Debit Note for Sri Lanka VAT (effective 2026-01-01)",
     "author": "Beaver Hub (Pvt) Ltd",
-    "website": "https://beaver-hub.com",
+    "website": "https://www.beaver-hub.com",
     "depends": [
         "account",
         "account_debit_note",
