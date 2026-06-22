@@ -19,8 +19,13 @@
     </record>
 
     <!--
-        Dedicated VAT invoice report action - used by the copy wizard.
-        Uses our custom paper format to avoid huge top/bottom margins.
+        Dedicated VAT invoice report action - used by the copy wizard and by
+        action_print_pdf (the single "Print" button). Deliberately NOT bound
+        to the Print dropdown menu (binding_model_id explicitly cleared
+        below) - the per-invoice "Print as Tax Invoice" toggle on the
+        invoice form decides which template the single Print button uses,
+        so there is only one menu entry, not two. The standard
+        account.account_invoices action is left completely untouched.
     -->
     <record id="action_report_vat_invoice" model="ir.actions.report">
         <field name="name">Tax Invoice (Sri Lanka)</field>
@@ -31,20 +36,10 @@
         <field name="print_report_name">(object._get_report_base_filename())</field>
         <field name="paperformat_id" ref="l10n_lk_vat.paperformat_lk_vat_invoice"/>
         <field name="domain">[]</field>
-    </record>
-
-    <!--
-        Override the standard "Invoice PDF" action to route through our template
-        wrapper.  Only report_name and report_file are changed - paperformat_id
-        is deliberately NOT overridden here because this action is used globally
-        by all companies.  Overriding paperformat_id would force LK-specific
-        margins on non-LK companies.
-
-        LK companies print via action_report_vat_invoice (from action_print_pdf
-        and the copy wizard) which carries the correct paper format.
-    -->
-    <record id="account.account_invoices" model="ir.actions.report">
-        <field name="report_name">l10n_lk_vat.report_vat_invoice</field>
-        <field name="report_file">l10n_lk_vat.report_vat_invoice</field>
+        <!-- Explicitly cleared (not just omitted) so upgrading from a version
+             that bound this action also unbinds it - omitting the field
+             would leave a previously-set value untouched. -->
+        <field name="binding_model_id" eval="False"/>
+        <field name="binding_type">action</field>
     </record>
 </odoo>

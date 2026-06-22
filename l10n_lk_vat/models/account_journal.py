@@ -7,7 +7,8 @@ class AccountJournal(models.Model):
 
     l10n_lk_vat_unit_code = fields.Char(
         string="VAT Unit Code (QQQQ)",
-        size=10,
+        size=4,
+        default="MAIN",
         help="Alphanumeric code identifying this branch/unit/section in the gazette invoice "
         'serial number format YYMMM_QQQQ_XXXXX (e.g. "HEAD", "BR03", "SALES").',
     )

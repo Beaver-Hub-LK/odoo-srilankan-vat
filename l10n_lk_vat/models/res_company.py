@@ -39,8 +39,13 @@ class ResCompany(models.Model):
     )
     l10n_lk_vat_show_signature_box = fields.Boolean(
         string="Show Blank Signature Box",
-        default=True,
+        default=False,
         help="Print a blank box at the bottom of the invoice for a wet signature.",
+    )
+    l10n_lk_vat_show_amount_in_words = fields.Boolean(
+        string="Show Total Amount in Words",
+        default=True,
+        help="Print the total amount spelled out in words below the totals table on the VAT invoice.",
     )
     l10n_lk_vat_rate = fields.Float(
         string="VAT Rate (%)",

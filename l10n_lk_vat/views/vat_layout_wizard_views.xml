@@ -32,6 +32,13 @@
                                     Annexure I. Update this when the gazette rate changes.
                                 </div>
                             </group>
+                            <group string="Totals">
+                                <field name="l10n_lk_vat_show_amount_in_words" widget="boolean_toggle"/>
+                                <div class="text-muted" colspan="2">
+                                    When enabled, the total amount is spelled out in words
+                                    below the totals table on the VAT invoice.
+                                </div>
+                            </group>
                         </group>
                     </page>
 
