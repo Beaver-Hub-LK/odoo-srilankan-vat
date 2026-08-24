@@ -1,4 +1,4 @@
 ruff
 pylint==4.0.6
-pylint-odoo==10.0.2
+pylint-odoo==10.0.11
 pre-commit
