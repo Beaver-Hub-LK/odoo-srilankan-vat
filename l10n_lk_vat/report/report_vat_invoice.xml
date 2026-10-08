@@ -323,9 +323,14 @@
                     </tr>
                 </thead>
                 <tbody>
+                    <!-- Print lines in the order they appear on the invoice form
+                         (by sequence; account.move.line's default _order ignores it,
+                         which pushed sections/notes added later to the end).
+                         Section "hide details / hide prices" options are not applied:
+                         the gazette requires every supply line with its quantity and value. -->
                     <t t-foreach="o.invoice_line_ids.filtered(
-                            lambda l: l.display_type in ('product','line_section','line_note')
-                        )" t-as="line">
+                            lambda l: l.display_type in ('product', 'line_section', 'line_subsection', 'line_note')
+                        ).sorted('sequence')" t-as="line">
 
                         <t t-if="line.display_type == 'product'">
                             <tr>
@@ -358,6 +363,16 @@
                                 <td t-att-colspan="ncols"
                                     style="border: 1px solid #2a2a2a; padding: 9px 10px;
                                            font-weight: bold; background: #fafafa;">
+                                    <span t-field="line.name"/>
+                                </td>
+                            </tr>
+                        </t>
+
+                        <t t-elif="line.display_type == 'line_subsection'">
+                            <tr>
+                                <td t-att-colspan="ncols"
+                                    style="border: 1px solid #2a2a2a; padding: 8px 10px 8px 22px;
+                                           font-weight: bold; font-size: 9.5pt;">
                                     <span t-field="line.name"/>
                                 </td>
                             </tr>

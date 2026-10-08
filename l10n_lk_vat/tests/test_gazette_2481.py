@@ -301,3 +301,40 @@ class TestL10nLkOriginalLock(L10nLkVatCommon):
         html = self._render_html(inv)
         self.assertEqual(html.count('class="article"'), 1)
         self.assertNotIn("Original - Customer", html)
+
+    # ── Line order: sections / sub-sections / notes print where they were added ──
+
+    def test_sections_and_notes_print_in_form_order(self):
+        inv = self._make_invoice(line_vals={"name": "PRODUCT-ALPHA", "sequence": 10})
+        inv.write(
+            {
+                "invoice_line_ids": [
+                    Command.create(
+                        {
+                            "name": "PRODUCT-OMEGA",
+                            "quantity": 1.0,
+                            "price_unit": 50.0,
+                            "account_id": self.company_data["default_account_revenue"].id,
+                            "sequence": 50,
+                        }
+                    ),
+                ]
+            }
+        )
+        # Added afterwards (higher ids) but placed between the two products,
+        # as when a user inserts them in the middle of the lines on the form.
+        inv.write(
+            {
+                "invoice_line_ids": [
+                    Command.create({"display_type": "line_section", "name": "SECTION-BREAD", "sequence": 20}),
+                    Command.create({"display_type": "line_subsection", "name": "SUBSECTION-BUNS", "sequence": 30}),
+                    Command.create({"display_type": "line_note", "name": "NOTE-FRESH-DAILY", "sequence": 40}),
+                ]
+            }
+        )
+        inv.action_post()
+        html = self._render_html(inv)
+        order = ["PRODUCT-ALPHA", "SECTION-BREAD", "SUBSECTION-BUNS", "NOTE-FRESH-DAILY", "PRODUCT-OMEGA"]
+        positions = [html.find(text) for text in order]
+        self.assertNotIn(-1, positions, dict(zip(order, positions, strict=True)))
+        self.assertEqual(positions, sorted(positions))
