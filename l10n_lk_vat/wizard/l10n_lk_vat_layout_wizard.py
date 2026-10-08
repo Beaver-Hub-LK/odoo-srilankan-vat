@@ -61,6 +61,22 @@ class L10nLkVatLayoutWizard(models.TransientModel):
         string="VAT Rate (%)",
     )
 
+    l10n_lk_vat_copy_set_enabled = fields.Boolean(
+        related="company_id.l10n_lk_vat_copy_set_enabled",
+        readonly=False,
+        string="Print Copy Set on Original",
+    )
+    l10n_lk_vat_copy_labels = fields.Text(
+        related="company_id.l10n_lk_vat_copy_labels",
+        readonly=False,
+        string="Copy Set Labels",
+    )
+    l10n_lk_vat_block_exempt_on_tax_invoice = fields.Boolean(
+        related="company_id.l10n_lk_vat_block_exempt_on_tax_invoice",
+        readonly=False,
+        string="Block Exempt Lines on Tax Invoices",
+    )
+
     # ── Constraints ──────────────────────────────────────────────────────────
 
     @api.constrains("company_id")

@@ -1,3 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_l10n_lk_copy_invoice,l10n_lk.copy.invoice (Accountant),model_l10n_lk_copy_invoice,account.group_account_invoice,1,1,1,1
 access_l10n_lk_vat_layout_wizard,l10n_lk.vat.layout.wizard (Manager),model_l10n_lk_vat_layout_wizard,account.group_account_manager,1,1,1,1
+access_l10n_lk_reset_original_print,l10n_lk.reset.original.print (Manager),model_l10n_lk_reset_original_print,account.group_account_manager,1,1,1,1

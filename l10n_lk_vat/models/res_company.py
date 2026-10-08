@@ -1,6 +1,8 @@
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
+DEFAULT_COPY_LABELS = "Original - Customer\nDuplicate - Accounts\nTriplicate - Stores\nQuadruplicate - Customer Copy"
+
 
 class ResCompany(models.Model):
     _inherit = "res.company"
@@ -54,6 +56,36 @@ class ResCompany(models.Model):
         help="Current VAT rate as published in the gazette. Printed on the invoice "
         'in the "VAT Amount (Total Value of Supply @ X%)" label.',
     )
+
+    # ── Copy set (Original / Duplicate / Triplicate / ...) ─────────────────
+    l10n_lk_vat_copy_set_enabled = fields.Boolean(
+        string="Print Copy Set on Original",
+        default=False,
+        help="When enabled, the ORIGINAL print of a Tax Invoice / Credit Note / Debit Note renders "
+        "the document once per label below, in a single PDF, with the label printed under the "
+        "title. COPY ONLY reprints always render a single copy.",
+    )
+    l10n_lk_vat_copy_labels = fields.Text(
+        string="Copy Set Labels",
+        default=DEFAULT_COPY_LABELS,
+        help="One label per line. Each line produces one copy of the document in the original print.",
+    )
+
+    # ── Gazette 4.2 / circular 4.8: Tax Invoice = VAT-taxable supplies only ─
+    l10n_lk_vat_block_exempt_on_tax_invoice = fields.Boolean(
+        string="Block Exempt Lines on Tax Invoices",
+        default=False,
+        help="When enabled, posting a document flagged 'Print as Tax Invoice' is blocked if any "
+        "product line carries no VAT or only 0% / exempt taxes (gazette 2481/22 clause 4.2). "
+        "When disabled, only a warning banner is shown on the invoice form, because the IRD "
+        "circular allows exempt supplies that are an integral part of a taxable supply to be "
+        "disclosed separately.",
+    )
+
+    def _l10n_lk_vat_copy_label_list(self):
+        """Return the cleaned list of copy-set labels (empty lines dropped)."""
+        self.ensure_one()
+        return [line.strip() for line in (self.l10n_lk_vat_copy_labels or "").splitlines() if line.strip()]
 
     # ── Constraints ──────────────────────────────────────────────────────────
 

@@ -66,6 +66,39 @@
                         </group>
                     </page>
 
+                    <!-- ── Tab: Copies ───────────────────────────────── -->
+                    <page string="Copies" name="copies">
+                        <group>
+                            <group string="Copy Set">
+                                <field name="l10n_lk_vat_copy_set_enabled" widget="boolean_toggle"/>
+                                <div class="text-muted" colspan="2">
+                                    When enabled, the ORIGINAL print renders the document once per
+                                    label (one label per line) in a single PDF, with the label printed
+                                    under the title. COPY ONLY reprints always render a single copy.
+                                </div>
+                            </group>
+                            <group string="Labels" invisible="not l10n_lk_vat_copy_set_enabled">
+                                <field name="l10n_lk_vat_copy_labels" nolabel="1" colspan="2"
+                                       placeholder="Original - Customer&#10;Duplicate - Accounts&#10;Triplicate - Stores&#10;Quadruplicate - Customer Copy"/>
+                            </group>
+                        </group>
+                    </page>
+
+                    <!-- ── Tab: Compliance ──────────────────────────── -->
+                    <page string="Compliance" name="compliance">
+                        <group>
+                            <group string="Tax Invoice content (gazette 4.2)">
+                                <field name="l10n_lk_vat_block_exempt_on_tax_invoice" widget="boolean_toggle"/>
+                                <div class="text-muted" colspan="2">
+                                    A Tax Invoice may only include VAT-taxable supplies. A yellow warning
+                                    is always shown on documents printed as Tax Invoice that contain
+                                    lines without VAT (no tax, 0% or exempt). Enable this to block
+                                    posting such documents instead.
+                                </div>
+                            </group>
+                        </group>
+                    </page>
+
                     <!-- ── Tab 3: Footer ─────────────────────────────── -->
                     <page string="Footer" name="footer">
                         <group>

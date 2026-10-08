@@ -97,7 +97,26 @@ class TestL10nLkSequence(L10nLkVatCommon):
         refund = self._make_invoice("out_refund", invoice_date=date(2026, 6, 1), post=True)
         self.assertTrue(refund.name.startswith("26JUN_HEAD_"), refund.name)
 
-    # ── Counter isolation per document type ──────────────────────────────────
+    def test_unit_code_with_month_like_digits(self):
+        """BR03 (the gazette example) must not be parsed as month 03."""
+        branch = self.env["account.journal"].create(
+            {
+                "name": "Branch 03 Sales",
+                "code": "BR03",
+                "type": "sale",
+                "l10n_lk_vat_unit_code": "BR03",
+                "company_id": self.company_data["company"].id,
+            }
+        )
+        inv1 = self._make_invoice("out_invoice", invoice_date=date(2026, 8, 4), post=True, journal=branch)
+        inv2 = self._make_invoice("out_invoice", invoice_date=date(2026, 8, 5), post=True, journal=branch)
+        inv3 = self._make_invoice("out_invoice", invoice_date=date(2026, 9, 1), post=True, journal=branch)
+        self.assertEqual(inv1.name, "26AUG_BR03_1")
+        self.assertEqual(inv2.name, "26AUG_BR03_2")
+        # Continuous (default) policy: the number carries on into the new month.
+        self.assertEqual(inv3.name, "26SEP_BR03_3")
+
+    # ── Shared counter across document types ──────────────────────────────────
 
     def test_invoice_and_credit_note_get_unique_sequential_numbers(self):
         # All document types share one monotonically-increasing counter per
@@ -121,6 +140,7 @@ class TestL10nLkSequence(L10nLkVatCommon):
     # ── Monthly counter isolation ─────────────────────────────────────────────
 
     def test_monthly_counter_resets(self):
+        self.company_data["default_journal_sale"].l10n_lk_vat_sequence_reset = "monthly"
         inv_jan = self._make_invoice("out_invoice", invoice_date=date(2026, 1, 15), post=True)
         inv_feb = self._make_invoice("out_invoice", invoice_date=date(2026, 2, 15), post=True)
 

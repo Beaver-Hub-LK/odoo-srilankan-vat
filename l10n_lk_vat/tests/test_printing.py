@@ -22,11 +22,12 @@ class TestL10nLkPrinting(L10nLkVatCommon):
         action = invoice.with_context(discard_logo_check=True).action_print_pdf()
         self.assertEqual(action["report_name"], "l10n_lk_vat.report_vat_invoice")
 
-    def test_action_print_pdf_falls_back_to_default_when_toggle_off(self):
+    def test_action_print_pdf_uses_gazette_report_when_toggle_off(self):
+        # Non-VAT buyers get the same gazette design titled INVOICE (2481/22 alignment).
         invoice = self._make_invoice("out_invoice", post=True)
         invoice.l10n_lk_print_as_tax_invoice = False
         action = invoice.with_context(discard_logo_check=True).action_print_pdf()
-        self.assertEqual(action["report_name"], "account.report_invoice_with_payments")
+        self.assertEqual(action["report_name"], "l10n_lk_vat.report_vat_invoice")
 
     def test_action_print_pdf_falls_back_when_lk_vat_disabled(self):
         self.env.company.l10n_lk_vat_enabled = False
@@ -45,12 +46,12 @@ class TestL10nLkPrinting(L10nLkVatCommon):
         action = default_action.report_action(invoice.id, config=False)
         self.assertEqual(action["report_name"], "l10n_lk_vat.report_vat_invoice")
 
-    def test_report_action_does_not_redirect_when_toggle_off(self):
+    def test_report_action_redirects_when_toggle_off(self):
         invoice = self._make_invoice("out_invoice", post=True)
         invoice.l10n_lk_print_as_tax_invoice = False
         default_action = self.env.ref("account.account_invoices")
         action = default_action.report_action(invoice.id, config=False)
-        self.assertEqual(action["report_name"], "account.report_invoice_with_payments")
+        self.assertEqual(action["report_name"], "l10n_lk_vat.report_vat_invoice")
 
     def test_report_action_does_not_redirect_when_lk_vat_disabled(self):
         self.env.company.l10n_lk_vat_enabled = False
@@ -60,11 +61,10 @@ class TestL10nLkPrinting(L10nLkVatCommon):
         self.assertEqual(action["report_name"], "account.report_invoice_with_payments")
 
     def test_report_action_redirect_requires_every_selected_move_to_qualify(self):
-        # Mixed batch (one toggled off) must fall back for the whole selection
-        # rather than guess which template the user wanted.
+        # Mixed batch (one non-LK document) must fall back for the whole
+        # selection rather than guess which template the user wanted.
         qualifies = self._make_invoice("out_invoice", post=True)
-        does_not_qualify = self._make_invoice("out_invoice", post=True)
-        does_not_qualify.l10n_lk_print_as_tax_invoice = False
+        does_not_qualify = self._make_invoice("in_invoice", post=True)
         default_action = self.env.ref("account.account_invoices")
         action = default_action.report_action([qualifies.id, does_not_qualify.id], config=False)
         self.assertEqual(action["report_name"], "account.report_invoice_with_payments")
@@ -97,15 +97,13 @@ class TestL10nLkPrinting(L10nLkVatCommon):
         html = content.decode() if isinstance(content, bytes) else content
         self.assertIn("TAX INVOICE", html)
 
-    def test_pre_render_qweb_pdf_does_not_redirect_when_toggle_off(self):
+    def test_pre_render_qweb_pdf_gazette_invoice_title_when_toggle_off(self):
         invoice = self._make_invoice("out_invoice", post=True)
         invoice.l10n_lk_print_as_tax_invoice = False
-        report = self.env["ir.actions.report"]
-        content, report_type = report._pre_render_qweb_pdf(
-            "account.report_invoice_with_payments", res_ids=[invoice.id], data={"context": {}}
-        )
-        html = content.decode() if isinstance(content, bytes) else content
+        html = self._render_html(invoice, report="account.report_invoice_with_payments")
         self.assertNotIn("TAX INVOICE", html)
+        self.assertIn("<b>INVOICE</b>", html)
+        self.assertIn("Date of Supply", html)
 
     def test_pre_render_qweb_pdf_does_not_redirect_when_lk_vat_disabled(self):
         self.env.company.l10n_lk_vat_enabled = False

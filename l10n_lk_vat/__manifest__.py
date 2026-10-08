@@ -1,9 +1,9 @@
 {
     "name": "Sri Lanka VAT Invoice Compliance",
     "countries": ["lk"],  # for discoverability; auto_install is False
-    "version": "19.0.1.0.0",
+    "version": "19.0.2.0.0",
     "category": "Accounting/Localizations",
-    "summary": "Gazette-compliant Tax Invoice, Credit Note & Debit Note for Sri Lanka VAT (effective 2026-01-01)",
+    "summary": "Gazette 2481/22 compliant Tax Invoice, Credit Note & Debit Note for Sri Lanka VAT",
     "author": "Beaver Hub (Pvt) Ltd",
     "website": "https://www.beaver-hub.com",
     "depends": [

@@ -10,7 +10,7 @@
             <!-- Target the *highlighted* Print button (shown before PDF is stored).
                  Odoo 19 has two action_print_pdf buttons; the plain name= selector
                  is ambiguous - the xpath uniquely matches the oe_highlight one. -->
-            <xpath expr="//button[@name='action_print_pdf' and @class='oe_highlight']" position="after">
+            <xpath expr="//button[@name='action_print_pdf' and hasclass('oe_highlight')]" position="after">
                 <button name="%(l10n_lk_vat.action_l10n_lk_copy_invoice)d"
                         string="Print Copy"
                         type="action"
@@ -20,6 +20,22 @@
                                    or not company_id.l10n_lk_vat_enabled"
                         help="Issue a COPY ONLY reprint. Requires a reason and is permanently logged."
                         groups="account.group_account_invoice"/>
+                <button name="%(l10n_lk_vat.action_l10n_lk_reset_original_print)d"
+                        string="Reset Original Print"
+                        type="action"
+                        class="btn-secondary"
+                        invisible="not l10n_lk_original_printed"
+                        help="Genuine misprint only: allow the next print to be the ORIGINAL again. Reason required and logged."
+                        groups="account.group_account_manager"/>
+            </xpath>
+
+            <!-- ── 1b. Gazette 4.2 warning banner (Tax Invoice with exempt lines) ── -->
+            <xpath expr="/form/sheet" position="before">
+                <div class="alert alert-warning mb-0" role="alert"
+                     invisible="not l10n_lk_vat_exempt_warning">
+                    <strong>Tax Invoice content: </strong>
+                    <field name="l10n_lk_vat_exempt_warning" readonly="1" nolabel="1" class="d-inline"/>
+                </div>
             </xpath>
 
             <!-- ── 2. Place of Supply + Mode of Payment below taxable date ── -->
@@ -37,9 +53,10 @@
             <xpath expr="//group[@name='sale_info_group']/field[@name='ref']" position="after">
                 <field name="l10n_lk_print_as_tax_invoice"
                        widget="boolean_toggle"
+                       readonly="l10n_lk_original_printed"
                        invisible="not company_id.l10n_lk_vat_enabled
                                   or move_type not in ('out_invoice', 'out_refund')"
-                       help="When on, the Print button prints the gazette Tax Invoice. When off, it prints Odoo's default invoice layout instead. The invoice's serial number is not affected either way."/>
+                       help="On: printed as TAX INVOICE / TAX CREDIT NOTE / TAX DEBIT NOTE with the purchaser TIN. Off: same gazette layout titled INVOICE / CREDIT NOTE / DEBIT NOTE, without purchaser TIN (non-VAT customers). Defaults from the customer's Tax ID. The serial number is not affected."/>
             </xpath>
 
             <!-- ── 4. Mode of Payment in Other Info → Invoice group ─────── -->
@@ -50,15 +67,19 @@
                        readonly="state != 'draft'"/>
             </field>
 
-            <!-- ── 5. Copy count in Other Info (read-only audit field) ───── -->
-            <field name="payment_reference" position="after">
-                <field name="l10n_lk_copy_count"
+            <!-- ── 5. Sri Lanka VAT audit group in Other Info ─────────────── -->
+            <xpath expr="//group[@name='accounting_info_group']" position="after">
+                <group string="Sri Lanka VAT" name="l10n_lk_vat_info_group"
                        invisible="not company_id.l10n_lk_vat_enabled
-                                  or move_type not in ('out_invoice', 'out_refund')
-                                  or l10n_lk_copy_count == 0"
-                       string="COPY ONLY Reprints"
-                       readonly="1"/>
-            </field>
+                                  or move_type not in ('out_invoice', 'out_refund')">
+                    <field name="l10n_lk_original_printed"/>
+                    <field name="l10n_lk_original_printed_date"
+                           invisible="not l10n_lk_original_printed"/>
+                    <field name="l10n_lk_original_printed_by"
+                           invisible="not l10n_lk_original_printed"/>
+                    <field name="l10n_lk_copy_count" string="COPY ONLY Reprints"/>
+                </group>
+            </xpath>
 
         </field>
     </record>

@@ -12,7 +12,24 @@
                 <t t-set="o" t-value="o.with_context(lang=lang)"/>
                 <t t-if="o.company_id.l10n_lk_vat_enabled
                           and o.move_type in ('out_invoice', 'out_refund')">
-                    <t t-call="l10n_lk_vat.report_vat_invoice_document"/>
+                    <!-- print_mode is decided server-side in
+                         ir.actions.report._pre_render_qweb_pdf: 'original' (first
+                         PDF of a posted document), 'copy' (every later render) or
+                         'preview' (draft / HTML preview). -->
+                    <t t-set="print_mode" t-value="o._l10n_lk_vat_print_mode()"/>
+                    <t t-set="copy_labels"
+                       t-value="o.company_id._l10n_lk_vat_copy_label_list()
+                                if print_mode == 'original' and o.company_id.l10n_lk_vat_copy_set_enabled
+                                else []"/>
+                    <!-- One article (= one wkhtmltopdf body, own page numbering and
+                         footer) per copy of the copy set. data-oe-* lets Odoo split
+                         a multi-invoice PDF per record (Send &amp; Print). -->
+                    <t t-foreach="copy_labels or [False]" t-as="copy_label">
+                        <div class="article" t-att-data-oe-model="o._name" t-att-data-oe-id="o.id"
+                             t-att-data-oe-lang="lang">
+                            <t t-call="l10n_lk_vat.report_vat_invoice_document"/>
+                        </div>
+                    </t>
                 </t>
                 <t t-else="">
                     <t t-call="account.report_invoice_with_payments"/>
@@ -33,18 +50,21 @@
     ═══════════════════════════════════════════════════════════════════════ -->
     <template id="report_vat_invoice_document">
 
-        <t t-set="is_copy"        t-value="context.get('l10n_lk_vat_copy_mode', False)"/>
+        <!-- COPY ONLY is decided server-side (never from the request context,
+             which a user could forge in the report URL). -->
+        <t t-set="is_copy"        t-value="print_mode == 'copy'"/>
+        <t t-set="is_tax_doc"     t-value="o.l10n_lk_print_as_tax_invoice"/>
         <t t-set="is_credit_note" t-value="o.move_type == 'out_refund'"/>
         <t t-set="is_debit_note"  t-value="o.move_type == 'out_invoice' and bool(o.debit_origin_id)"/>
-        <t t-if="is_credit_note">
-            <t t-set="doc_title" t-value="'TAX CREDIT NOTE'"/>
-        </t>
-        <t t-elif="is_debit_note">
-            <t t-set="doc_title" t-value="'TAX DEBIT NOTE'"/>
-        </t>
-        <t t-else="">
-            <t t-set="doc_title" t-value="'TAX INVOICE'"/>
-        </t>
+        <!-- TAX INVOICE / TAX CREDIT NOTE / TAX DEBIT NOTE for VAT-registered
+             buyers, INVOICE / CREDIT NOTE / DEBIT NOTE otherwise. -->
+        <t t-set="doc_title" t-value="o._l10n_lk_vat_doc_title()"/>
+        <t t-set="tax_prefix" t-value="'Tax ' if is_tax_doc else ''"/>
+        <t t-set="is_foreign" t-value="o.currency_id != o.company_id.currency_id"/>
+        <t t-set="amount_ccy" t-value="'Rs.' if o.currency_id.name == 'LKR' else o.currency_id.name"/>
+        <t t-set="product_lines" t-value="o.invoice_line_ids.filtered(lambda l: l.display_type == 'product')"/>
+        <t t-set="has_discount" t-value="any(l.discount for l in product_lines)"/>
+        <t t-set="ncols" t-value="6 if has_discount else 5"/>
         <t t-set="original_move"   t-value="o.reversed_entry_id if is_credit_note else o.debit_origin_id"/>
         <!-- res.partner has no separate "mobile" field in this Odoo version -
              phone is the only contact number available. -->
@@ -93,8 +113,14 @@
                                  letter-spacing: 2px;
                                  line-height: 1.25;
                                  white-space: nowrap;">
-                        <t t-esc="doc_title"/>
+                        <b t-esc="doc_title"/>
                     </span>
+                    <t t-if="copy_label">
+                        <div style="margin-top: 6px; font-size: 10pt; font-weight: bold;
+                                    letter-spacing: 1px; text-transform: uppercase;">
+                            <t t-esc="copy_label"/>
+                        </div>
+                    </t>
                 </div>
                 <t t-if="o.company_id.l10n_lk_vat_show_logo and o.company_id.logo">
                     <div style="display: table-cell; width: 200px;"/>
@@ -130,9 +156,9 @@
                 <div style="display: table-cell; width: 50%; padding-left: 3px; vertical-align: top;">
                     <div style="border: 1px solid #2a2a2a; padding: 9px 16px;">
                         <span style="color: #5a5a5a; font-size: 9pt;">
-                            <t t-if="is_credit_note">Tax Credit Note No.:</t>
-                            <t t-elif="is_debit_note">Tax Debit Note No.:</t>
-                            <t t-else="">Tax Invoice No.:</t>
+                            <t t-if="is_credit_note"><t t-esc="tax_prefix"/>Credit Note No.:</t>
+                            <t t-elif="is_debit_note"><t t-esc="tax_prefix"/>Debit Note No.:</t>
+                            <t t-else=""><t t-esc="tax_prefix"/>Invoice No.:</t>
                         </span>
                         <span style="font-weight: 600; font-size: 10pt;">
                             <t t-esc="' ' + (o.name or '')"/>
@@ -173,10 +199,12 @@
                 </div>
                 <div style="display: table-cell; width: 50%; padding-left: 3px; vertical-align: top;">
                     <div style="border: 1px solid #2a2a2a; padding: 14px 16px; min-height: 132px;">
-                        <div style="margin-bottom: 6px;">
-                            <span style="color: #5a5a5a; font-size: 9pt;">Purchaser's TIN:</span>
-                            <t t-esc="' ' + (o.partner_id.vat or 'N/A')"/>
-                        </div>
+                        <t t-if="is_tax_doc">
+                            <div style="margin-bottom: 6px;">
+                                <span style="color: #5a5a5a; font-size: 9pt;">Purchaser's TIN:</span>
+                                <t t-esc="' ' + (o.partner_id.vat or o.commercial_partner_id.vat or 'N/A')"/>
+                            </div>
+                        </t>
                         <div style="margin-bottom: 6px;">
                             <span style="color: #5a5a5a; font-size: 9pt;">Purchaser's Name:</span>
                             <span style="font-weight: 600;">
@@ -201,11 +229,11 @@
                 </div>
             </div>
 
-            <!-- Row 3: Date of Delivery  |  Place of Supply -->
+            <!-- Row 3: Date of Supply (4.1.d)  |  Place of Supply (4.1.c, optional - only when set) -->
             <div style="display: table; width: 100%; margin-bottom: 6px;">
                 <div style="display: table-cell; width: 50%; padding-right: 3px; vertical-align: top;">
                     <div style="border: 1px solid #2a2a2a; padding: 9px 16px;">
-                        <span style="color: #5a5a5a; font-size: 9pt;">Date of Delivery:</span>
+                        <span style="color: #5a5a5a; font-size: 9pt;">Date of Supply:</span>
                         <t t-if="o.taxable_supply_date">
                             <span style="font-weight: 600;">
                                 <t t-esc="' ' + o.taxable_supply_date.strftime('%m/%d/%Y')"/>
@@ -219,10 +247,12 @@
                     </div>
                 </div>
                 <div style="display: table-cell; width: 50%; padding-left: 3px; vertical-align: top;">
-                    <div style="border: 1px solid #2a2a2a; padding: 9px 16px;">
-                        <span style="color: #5a5a5a; font-size: 9pt;">Place of Supply:</span>
-                        <t t-esc="' ' + (o.l10n_lk_place_of_supply or '')"/>
-                    </div>
+                    <t t-if="o.l10n_lk_place_of_supply">
+                        <div style="border: 1px solid #2a2a2a; padding: 9px 16px;">
+                            <span style="color: #5a5a5a; font-size: 9pt;">Place of Supply:</span>
+                            <t t-esc="' ' + o.l10n_lk_place_of_supply"/>
+                        </div>
+                    </t>
                 </div>
             </div>
 
@@ -263,49 +293,32 @@
                 </t>
             </div>
 
-            <!-- Gazette clause 4.1.g: Value of Supply stated in LKR with cents (2 decimal places). -->
+            <!-- Gazette clause 4.1.g: Value of Supply with cents (2 decimal places).
+                 Never rounded to whole rupees. -->
             <t t-set="r_net"   t-value="o.amount_untaxed"/>
             <t t-set="r_vat"   t-value="o.amount_tax"/>
             <t t-set="r_total" t-value="o.amount_total"/>
+            <t t-set="th_style" t-value="'border: 1px solid #2a2a2a; padding: 10px 8px; text-align: center; font-size: 9.5pt; font-weight: bold; background: #f0f0f0;'"/>
+            <t t-set="td_style" t-value="'border: 1px solid #2a2a2a; padding: 9px 8px; vertical-align: top;'"/>
 
             <!-- ════════════════════════════════════════════════════════════
                  LINE ITEMS TABLE
-                 Header: subtle gray background + bold labels
-                 Body:   8 px cell padding, right-aligned amounts
-                 Foot:   three totals rows, last row bold
+                 Columns: Reference | Description | Quantity | Unit Price
+                          [| Disc. % - only when a line has a discount]
+                          | Amount Excluding VAT
+                 Amount = Quantity x Unit Price x (1 - Disc. %), where Unit
+                 Price is shown excluding VAT so the arithmetic is visible.
             ════════════════════════════════════════════════════════════ -->
             <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
                 <thead>
                     <tr>
-                        <th style="border: 1px solid #2a2a2a; padding: 10px 8px;
-                                   text-align: center; width: 11%;
-                                   font-size: 9.5pt; font-weight: bold;
-                                   background: #f0f0f0;">
-                            Reference
-                        </th>
-                        <th style="border: 1px solid #2a2a2a; border-left: none;
-                                   padding: 10px 10px; text-align: center; width: 39%;
-                                   font-size: 9.5pt; font-weight: bold;
-                                   background: #f0f0f0;">
-                            Description of Goods or Services
-                        </th>
-                        <th style="border: 1px solid #2a2a2a; border-left: none;
-                                   padding: 10px 8px; text-align: center; width: 10%;
-                                   font-size: 9.5pt; font-weight: bold;
-                                   background: #f0f0f0;">
-                            Quantity
-                        </th>
-                        <th style="border: 1px solid #2a2a2a; border-left: none;
-                                   padding: 10px 8px; text-align: center; width: 16%;
-                                   font-size: 9.5pt; font-weight: bold;
-                                   background: #f0f0f0;">
-                            Unit Price
-                        </th>
-                        <th style="border: 1px solid #2a2a2a; border-left: none;
-                                   padding: 10px 8px; text-align: center; width: 24%;
-                                   font-size: 9.5pt; font-weight: bold;
-                                   background: #f0f0f0;">
-                            Amount Excluding VAT (Rs.)
+                        <th t-att-style="th_style + ('width: 10%;' if has_discount else 'width: 11%;')">Reference</th>
+                        <th t-att-style="th_style + ('width: 34%;' if has_discount else 'width: 39%;')">Description of Goods or Services</th>
+                        <th t-att-style="th_style + 'width: 10%;'">Quantity</th>
+                        <th t-att-style="th_style + ('width: 14%;' if has_discount else 'width: 16%;')">Unit Price</th>
+                        <th t-if="has_discount" t-att-style="th_style + 'width: 8%;'">Disc. %</th>
+                        <th t-att-style="th_style + 'width: 24%;'">
+                            Amount Excluding VAT (<t t-esc="amount_ccy"/>)
                         </th>
                     </tr>
                 </thead>
@@ -316,27 +329,25 @@
 
                         <t t-if="line.display_type == 'product'">
                             <tr>
-                                <td style="border: 1px solid #2a2a2a; padding: 9px 8px;
-                                           text-align: center; vertical-align: top;">
+                                <td t-att-style="td_style + 'text-align: center;'">
                                     <t t-esc="line.product_id.default_code or ''"/>
                                 </td>
-                                <td style="border: 1px solid #2a2a2a; border-left: none;
-                                           padding: 9px 10px; vertical-align: top;">
+                                <td t-att-style="td_style + 'padding: 9px 10px;'">
                                     <span t-field="line.name"/>
                                 </td>
-                                <td style="border: 1px solid #2a2a2a; border-left: none;
-                                           padding: 9px 8px; text-align: center; vertical-align: top;">
+                                <td t-att-style="td_style + 'text-align: center;'">
                                     <t t-esc="'{:,.2f}'.format(line.quantity)"/>
                                     <t t-if="line.product_uom_id">
                                         <t t-esc="' ' + line.product_uom_id.name"/>
                                     </t>
                                 </td>
-                                <td style="border: 1px solid #2a2a2a; border-left: none;
-                                           padding: 9px 10px; text-align: right; vertical-align: top;">
-                                    <t t-esc="'{:,.2f}'.format(line.price_unit)"/>
+                                <td t-att-style="td_style + 'padding: 9px 10px; text-align: right;'">
+                                    <t t-esc="'{:,.2f}'.format(line._l10n_lk_vat_unit_price_excl())"/>
                                 </td>
-                                <td style="border: 1px solid #2a2a2a; border-left: none;
-                                           padding: 9px 10px; text-align: right; vertical-align: top;">
+                                <td t-if="has_discount" t-att-style="td_style + 'text-align: right;'">
+                                    <t t-if="line.discount" t-esc="'{:,.2f}'.format(line.discount)"/>
+                                </td>
+                                <td t-att-style="td_style + 'padding: 9px 10px; text-align: right;'">
                                     <t t-esc="'{:,.2f}'.format(line.price_subtotal)"/>
                                 </td>
                             </tr>
@@ -344,7 +355,7 @@
 
                         <t t-elif="line.display_type == 'line_section'">
                             <tr>
-                                <td colspan="5"
+                                <td t-att-colspan="ncols"
                                     style="border: 1px solid #2a2a2a; padding: 9px 10px;
                                            font-weight: bold; background: #fafafa;">
                                     <span t-field="line.name"/>
@@ -354,7 +365,7 @@
 
                         <t t-elif="line.display_type == 'line_note'">
                             <tr>
-                                <td colspan="5"
+                                <td t-att-colspan="ncols"
                                     style="border: 1px solid #2a2a2a; padding: 9px 10px;
                                            font-style: italic; color: #555;">
                                     <span t-field="line.name"/>
@@ -368,7 +379,7 @@
                 <tbody>
                     <!-- Total Value of Supply -->
                     <tr>
-                        <td colspan="4"
+                        <td t-att-colspan="ncols - 1"
                             style="border: 1px solid #2a2a2a; padding: 9px 16px;
                                    font-size: 9.5pt;">
                             Total Value of Supply:
@@ -380,7 +391,7 @@
                     </tr>
                     <!-- VAT Amount -->
                     <tr>
-                        <td colspan="4"
+                        <td t-att-colspan="ncols - 1"
                             style="border: 1px solid #2a2a2a; border-top: none;
                                    padding: 9px 16px; font-size: 9.5pt;">
                             <t t-esc="'VAT Amount (Total Value of Supply @ {:g}%)'.format(o.company_id.l10n_lk_vat_rate)"/>
@@ -392,10 +403,10 @@
                     </tr>
                     <!-- Total Amount including VAT (bold) -->
                     <tr>
-                        <td colspan="4"
+                        <td t-att-colspan="ncols - 1"
                             style="border: 1px solid #2a2a2a; border-top: none;
                                    padding: 9px 16px; font-size: 9.5pt; font-weight: bold;">
-                            Total Amount including VAT:
+                            Total Amount/consideration including VAT:
                         </td>
                         <td style="border: 1px solid #2a2a2a; border-left: none; border-top: none;
                                    padding: 9px 10px; text-align: right; font-weight: bold;">
@@ -404,6 +415,62 @@
                     </tr>
                 </tbody>
             </table>
+
+            <!-- ════════════════════════════════════════════════════════════
+                 FOREIGN CURRENCY (IRD circular SEC/2026/E/03, 4.7):
+                 Value of Supply, VAT and Total additionally stated in LKR,
+                 using the document's own rate (the company-currency amounts
+                 Odoo booked for this move).
+            ════════════════════════════════════════════════════════════ -->
+            <t t-if="is_foreign">
+                <t t-set="lkr_net"   t-value="abs(o.amount_untaxed_signed)"/>
+                <t t-set="lkr_vat"   t-value="abs(o.amount_tax_signed)"/>
+                <t t-set="lkr_total" t-value="abs(o.amount_total_signed)"/>
+                <t t-set="fx_rate"
+                   t-value="(1.0 / o.invoice_currency_rate) if o.invoice_currency_rate
+                            else ((lkr_total / r_total) if r_total else 0.0)"/>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                    <tr>
+                        <td colspan="2"
+                            style="border: 1px solid #2a2a2a; padding: 7px 16px; font-size: 9pt;
+                                   background: #f0f0f0; font-weight: bold;">
+                            <t t-esc="'Amounts in Sri Lankan Rupees (LKR) - rate used: 1 %s = %s LKR (invoice date %s)' % (
+                                o.currency_id.name, '{:,.4f}'.format(fx_rate),
+                                o.invoice_date.strftime('%m/%d/%Y') if o.invoice_date else '')"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #2a2a2a; border-top: none; padding: 7px 16px;
+                                   font-size: 9.5pt; width: 76%;">
+                            Total Value of Supply (LKR):
+                        </td>
+                        <td style="border: 1px solid #2a2a2a; border-left: none; border-top: none;
+                                   padding: 7px 10px; text-align: right; font-weight: 600; width: 24%;">
+                            <t t-esc="'{:,.2f}'.format(lkr_net)"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #2a2a2a; border-top: none; padding: 7px 16px;
+                                   font-size: 9.5pt;">
+                            VAT Amount (LKR):
+                        </td>
+                        <td style="border: 1px solid #2a2a2a; border-left: none; border-top: none;
+                                   padding: 7px 10px; text-align: right; font-weight: 600;">
+                            <t t-esc="'{:,.2f}'.format(lkr_vat)"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #2a2a2a; border-top: none; padding: 7px 16px;
+                                   font-size: 9.5pt; font-weight: bold;">
+                            Total Amount including VAT (LKR):
+                        </td>
+                        <td style="border: 1px solid #2a2a2a; border-left: none; border-top: none;
+                                   padding: 7px 10px; text-align: right; font-weight: bold;">
+                            <t t-esc="'{:,.2f}'.format(lkr_total)"/>
+                        </td>
+                    </tr>
+                </table>
+            </t>
 
             <!-- ════════════════════════════════════════════════════════════
                  BOTTOM SECTION - Amount in words + Mode of Payment

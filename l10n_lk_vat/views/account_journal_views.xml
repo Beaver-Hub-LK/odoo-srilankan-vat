@@ -10,6 +10,8 @@
                 <field name="l10n_lk_vat_unit_code"
                        placeholder="e.g. HEAD, BR01, SALES"
                        invisible="type != 'sale' or not company_id.l10n_lk_vat_enabled"/>
+                <field name="l10n_lk_vat_sequence_reset"
+                       invisible="type != 'sale' or not company_id.l10n_lk_vat_enabled"/>
             </field>
         </field>
     </record>

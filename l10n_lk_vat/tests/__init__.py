@@ -3,3 +3,4 @@ from . import test_sequence
 from . import test_copy
 from . import test_fields
 from . import test_printing
+from . import test_gazette_2481

@@ -9,7 +9,7 @@
                 <block title="Sri Lanka VAT Compliance" id="l10n_lk_vat_settings">
                     <setting id="l10n_lk_vat_enabled"
                              string="Enable Sri Lanka VAT Compliance"
-                             help="Activates gazette-compliant Tax Invoice numbering and report layout for Sri Lanka VAT (effective 2026-01-01).">
+                             help="Activates gazette-compliant Tax Invoice numbering and report layout for Sri Lanka VAT (Gazette 2481/22, effective 2026-10-01).">
                         <field name="l10n_lk_vat_enabled" />
                         <div class="content-group mt-2" invisible="not l10n_lk_vat_enabled">
                             <button type="action"

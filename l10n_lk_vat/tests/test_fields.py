@@ -56,8 +56,21 @@ class TestL10nLkFields(L10nLkVatCommon):
 
     # ── l10n_lk_print_as_tax_invoice ──────────────────────────────────────────
 
-    def test_print_as_tax_invoice_defaults_to_true(self):
+    def test_print_as_tax_invoice_defaults_to_true_for_vat_customer(self):
         invoice = self._make_invoice("out_invoice")
+        self.assertTrue(invoice.l10n_lk_print_as_tax_invoice)
+
+    def test_print_as_tax_invoice_defaults_to_false_for_non_vat_customer(self):
+        invoice = self._make_invoice("out_invoice", partner=self.partner_novat)
+        self.assertFalse(invoice.l10n_lk_print_as_tax_invoice)
+
+    def test_print_as_tax_invoice_follows_partner_in_draft_frozen_when_posted(self):
+        invoice = self._make_invoice("out_invoice", partner=self.partner_novat)
+        invoice.partner_id = self.partner_a
+        self.assertTrue(invoice.l10n_lk_print_as_tax_invoice)
+        invoice.action_post()
+        self.partner_a.vat = False
+        invoice.invalidate_recordset()
         self.assertTrue(invoice.l10n_lk_print_as_tax_invoice)
 
     def test_print_as_tax_invoice_is_user_editable(self):
@@ -87,7 +100,7 @@ class TestL10nLkFields(L10nLkVatCommon):
                     "name": "Test Sales Journal",
                     "type": "sale",
                     "code": "TSLS",
-                    # l10n_lk_vat_unit_code deliberately omitted
+                    "l10n_lk_vat_unit_code": False,  # default is MAIN - clear it explicitly
                 }
             )
 
@@ -97,6 +110,7 @@ class TestL10nLkFields(L10nLkVatCommon):
                 "name": "Test Purchase Journal",
                 "type": "purchase",
                 "code": "TPRC",
+                "l10n_lk_vat_unit_code": False,
             }
         )
         self.assertFalse(journal.l10n_lk_vat_unit_code)
@@ -108,13 +122,31 @@ class TestL10nLkFields(L10nLkVatCommon):
                 "name": "Test Sales Journal Disabled",
                 "type": "sale",
                 "code": "TSLS2",
+                "l10n_lk_vat_unit_code": False,
             }
         )
         self.assertFalse(journal.l10n_lk_vat_unit_code)
 
-    def test_unit_code_max_10_chars(self):
+    def test_unit_code_max_15_chars(self):
+        # Gazette 2481/22 4.1.a.iii / IRD circular 4.4: QQQQ is 1 to 15 characters.
         field = self.env["account.journal"]._fields["l10n_lk_vat_unit_code"]
-        self.assertEqual(field.size, 10)
+        self.assertEqual(field.size, 15)
+
+    def test_unit_code_default_main(self):
+        journal = self.env["account.journal"].create({"name": "Default Code", "type": "sale", "code": "DFC1"})
+        self.assertEqual(journal.l10n_lk_vat_unit_code, "MAIN")
+
+    def test_unit_code_15_alnum_is_valid(self):
+        journal = self.env["account.journal"].create(
+            {"name": "Long Code", "type": "sale", "code": "LNG1", "l10n_lk_vat_unit_code": "BRANCH03COLOMBO"}
+        )
+        self.assertEqual(journal.l10n_lk_vat_unit_code, "BRANCH03COLOMBO")
+
+    def test_unit_code_rejects_space_underscore_symbols(self):
+        journal = self.company_data["default_journal_sale"]
+        for bad in ("BR 03", "BR_03", "BR-03", "BR/3"):
+            with self.subTest(code=bad), self.assertRaises(ValidationError):
+                journal.l10n_lk_vat_unit_code = bad
 
     # ── Layout wizard write-through ──────────────────────────────────────────
 
@@ -184,6 +216,7 @@ class TestL10nLkFields(L10nLkVatCommon):
                 "name": "No-Code Sales Journal",
                 "type": "sale",
                 "code": "NCS1",
+                "l10n_lk_vat_unit_code": False,
             }
         )
         with self.assertRaises(ValidationError):

@@ -1,4 +1,9 @@
+from collections import OrderedDict
+
 from odoo import api, models
+from odoo.http import request
+
+from .account_move import L10N_LK_PRINT_MODES_KEY
 
 
 class IrActionsReport(models.Model):
@@ -41,50 +46,84 @@ class IrActionsReport(models.Model):
 
         return command_args
 
-    def _pre_render_qweb_pdf(self, report_ref, res_ids=None, data=None):
-        """Redirect Odoo's stock invoice report to the gazette Tax Invoice.
+    def _l10n_lk_vat_qualifies(self, moves):
+        """All moves are LK VAT sales documents → gazette-style layout.
 
-        This is the lowest-level method common to every PDF entry point
-        except the dedicated in-form Print button (which calls
-        action_report_vat_invoice directly and never reaches this method
-        at all). The cog-wheel Print menu reaches here via the
-        /report/download controller -> _render_qweb_pdf -> here, using the
-        report_name STRING "account.report_invoice_with_payments" - it
-        never calls report_action() despite that name suggesting otherwise.
-        account.move.send._prepare_invoice_pdf_report (the Send & Print
-        wizard) calls this method directly with the same string. Both
-        bypassed our per-invoice "Print as Tax Invoice" toggle entirely
-        until this override - this is the single chokepoint that actually
-        catches them.
+        Both Tax Invoices and plain (non-VAT buyer) Invoices use the gazette
+        design; ``l10n_lk_print_as_tax_invoice`` only changes the title and
+        the purchaser TIN row inside the template.
         """
-        if self._is_default_invoice_report(report_ref) and res_ids:
+        return bool(moves) and all(move._is_l10n_lk_vat_sequence() for move in moves)
+
+    def _pre_render_qweb_pdf(self, report_ref, res_ids=None, data=None):
+        """Single chokepoint for every PDF of an LK VAT sales document.
+
+        Reached by the in-form Print button (our report via /report/download),
+        the cog-wheel Print menu (account.report_invoice_with_payments via
+        /report/download -> _render_qweb_pdf), the Send & Print wizard
+        (account.move.send calls this method directly) and e-mail templates.
+
+        1. Redirects Odoo's stock invoice report to the gazette template.
+        2. Decides, per posted document, whether this render is the ORIGINAL
+           (first PDF ever) or a COPY ONLY (every later render), records it
+           (fields + chatter) and hands the decision to the template through
+           a server-side, per-transaction dict - never through the context,
+           which a user can forge in the report URL.
+        """
+        if res_ids and (self._is_default_invoice_report(report_ref) or self._is_lk_vat_report(report_ref)):
             moves = self._l10n_lk_vat_resolve_moves(res_ids)
-            if moves and all(move._is_l10n_lk_vat_sequence() and move.l10n_lk_print_as_tax_invoice for move in moves):
-                return super()._pre_render_qweb_pdf("l10n_lk_vat.report_vat_invoice", res_ids=res_ids, data=data)
+            if self._l10n_lk_vat_qualifies(moves):
+                if data and data.get("proforma"):
+                    modes = {move.id: "preview" for move in moves}
+                else:
+                    path = self.env.context.get("l10n_lk_vat_print_path") or "Send & Print"
+                    copy_requested = bool(self.env.context.get("l10n_lk_vat_copy_mode"))
+                    modes = moves._l10n_lk_vat_register_print(path, copy_requested=copy_requested)
+                store = self.env.cr.precommit.data.setdefault(L10N_LK_PRINT_MODES_KEY, {})
+                store.update(modes)
+                try:
+                    return super(IrActionsReport, self.with_context(l10n_lk_vat_copy_mode=False))._pre_render_qweb_pdf(
+                        "l10n_lk_vat.report_vat_invoice", res_ids=res_ids, data=data
+                    )
+                finally:
+                    for move_id in modes:
+                        store.pop(move_id, None)
         return super()._pre_render_qweb_pdf(report_ref, res_ids=res_ids, data=data)
 
-    def _render_qweb_pdf(self, report_ref, res_ids=None, data=None):
-        """Block fraudulent COPY ONLY stamps injected via the rendering context.
+    def _render_qweb_pdf_prepare_streams(self, report_ref, data, res_ids=None):
+        """Render gazette documents one record at a time.
 
-        The 'COPY ONLY' stamp in the QWeb template is driven by the
-        l10n_lk_vat_copy_mode context key.  Without this guard, any user with
-        invoice-print access could craft a report URL carrying that key and obtain
-        a COPY-stamped PDF without going through the wizard, bypassing the audit
-        trail and gazette compliance requirement.
-
-        Guard: if copy_mode is requested but none of the target invoices has had
-        its copy counter incremented (i.e. the wizard was never called for them),
-        strip the context flag so no stamp is rendered.  The wizard always
-        increments l10n_lk_copy_count before returning the print action, so
-        legitimate copy prints always satisfy this check.
+        The gazette template prints one or more copies per document, so the
+        number of pages never maps 1:1 to records and it has no outline
+        headings; the stock splitter would then return a single unsplit PDF
+        and Send & Print (which needs one PDF per invoice) would fail.
         """
-        if self.env.context.get("l10n_lk_vat_copy_mode") and self._is_lk_vat_report(report_ref) and res_ids:
-            ids = [res_ids] if isinstance(res_ids, int) else list(res_ids)
-            moves = self.env["account.move"].browse(ids)
-            if not all(m.l10n_lk_copy_count > 0 for m in moves):
-                return self.with_context(l10n_lk_vat_copy_mode=False)._render_qweb_pdf(
-                    report_ref, res_ids=res_ids, data=data
+        if self._is_lk_vat_report(report_ref) and res_ids and len(res_ids) > 1 and len(set(res_ids)) == len(res_ids):
+            collected_streams = OrderedDict()
+            for res_id in res_ids:
+                collected_streams.update(
+                    super()._render_qweb_pdf_prepare_streams(report_ref, dict(data or {}), res_ids=[res_id])
                 )
+            return collected_streams
+        return super()._render_qweb_pdf_prepare_streams(report_ref, data, res_ids=res_ids)
+
+    def _render_qweb_pdf(self, report_ref, res_ids=None, data=None):
+        """Tag the render with the user-facing entry point, for the audit log.
+
+        The value is always overwritten here, so a context forged in the
+        report URL cannot spoof it. The COPY ONLY decision itself is taken in
+        _pre_render_qweb_pdf from server-side state only: a forged
+        ``l10n_lk_vat_copy_mode`` is ignored unless the Print Copy wizard has
+        just armed ``l10n_lk_copy_pending`` on the document.
+        """
+        if self._is_lk_vat_report(report_ref) or self._is_default_invoice_report(report_ref):
+            if self.env.context.get("l10n_lk_vat_copy_mode"):
+                path = "Print Copy wizard"
+            elif request and request.httprequest.path.startswith("/report/"):
+                path = "Print button" if self._is_lk_vat_report(report_ref) else "Print menu"
+            else:
+                path = "e-mail / API"
+            self = self.with_context(l10n_lk_vat_print_path=path)
         return super()._render_qweb_pdf(report_ref, res_ids=res_ids, data=data)
 
     def _run_wkhtmltopdf(
@@ -163,7 +202,7 @@ class IrActionsReport(models.Model):
         """
         if docids and self._is_default_invoice_action():
             moves = self._l10n_lk_vat_resolve_moves(docids)
-            if moves and all(move._is_l10n_lk_vat_sequence() and move.l10n_lk_print_as_tax_invoice for move in moves):
+            if self._l10n_lk_vat_qualifies(moves):
                 return self.env.ref("l10n_lk_vat.action_report_vat_invoice").report_action(
                     docids, data=data, config=False
                 )
